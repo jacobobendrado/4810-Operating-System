@@ -25,7 +25,7 @@ After completing this book, at the very least you will learn:
 	- *Decode* the instruction
 	- *Execute* the instruction (pg. 23)
 - The higher level a programming language is, the more distant it comes from the hardware (pg. 25)
-- This is the reason why C is usually a language of choice fro writing an operating system, since C is just a thin wrapper of the underlying hardware, making it easy to understand how exactly a hardware device runs when executing a certain piece of C code (pg. 25-26)
+- This is the reason why C is usually a language of choice for writing an operating system, since C is just a thin wrapper of the underlying hardware, making it easy to understand how exactly a hardware device runs when executing a certain piece of C code (pg. 25-26)
 - Recurring patterns are the key to abstraction. Recurring patterns are why abstraction works (pg. 27)
 - If the domain knowledge cannot be extracted, then the software cannot be further developed (pg. 30). This is key for us
 - If a programmer knows absolutely nothing about hardware, then it is impossible to read and write operating system code in C, even if he could have 20 years of writing application C code (pg. 30). Understanding the domain is the first priority!
