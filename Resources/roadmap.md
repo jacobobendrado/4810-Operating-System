@@ -7,6 +7,7 @@
 2. Peripheral Features
 	- File system
 	- Executables
+ - Doom Port
 	- Memory manager (virtual memory, paging)
 	- Process manager/Simple process scheduling/Inter-Process Communication
 	- Minimal set of system calls for process creation, IPC, and memory management
