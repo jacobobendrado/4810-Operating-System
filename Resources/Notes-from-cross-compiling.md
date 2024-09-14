@@ -26,10 +26,16 @@ A straightforward toolchain would be to call the compiler, then the assembler, a
 
 [Resource](https://stackoverflow.com/questions/43929201/what-is-a-compiler-toolchain)
 
-Note: The command `gcc` is not just a compiler- it's a whole toolchain!
+Note: The command `gcc` is not just a compiler- it's a whole toolchain (I think)!
 GCC stands for "GNU Compiler Collection."
 
+### Making a toolchain
+This is pretty low-level and not necessary right now.
+There's a lot of things that you can do to change things, but we probably won't need to do it.
+
+[Later Toolchain](https://wiki.osdev.org/OS_Specific_Toolchain)
 
 
+### Random Notes
 - If we make a C++ compiler, we would have to supply a C++ support library to the kernel to make the whole language work.
-- [Later Toolchain](https://wiki.osdev.org/OS_Specific_Toolchain)
+- We can define a preprocessor macro `__myos__` defined by the compiler.
