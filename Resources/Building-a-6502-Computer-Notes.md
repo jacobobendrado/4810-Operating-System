@@ -8,7 +8,7 @@ Check out the [YouTube series](https://youtu.be/LnzuMJLZRdU?si=XKHH-bDR27RoY-oW)
 >The series covers the basic building blocks of a computer system, including CPU operation, memory management, and I/O handling. Understanding these fundamentals is crucial when designing an operating system, as it helps you grasp how hardware interacts with software.
 
 ## The Circuit
->![[Pasted image 20240915212551.png]]
+>![image](https://github.com/user-attachments/assets/1e47bfe8-0bb5-4cc5-9442-735d821fc63e)
 
 - As it looked in [Connecting an LCD to our computer — 6502 part 4](https://youtu.be/FY3zTUaykVo?si=XWPtij2uEq91gCtQ)
 #### Parts of the Circuit Explained
