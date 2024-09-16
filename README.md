@@ -10,7 +10,7 @@
 - [Operating Systems: From 0 to 1](https://github.com/tuhdo/os01)
     - Notes are in Progress. -MR
 - [Making an OS x86 Youtube Series](https://www.youtube.com/watch?v=MwPjvJ9ulSc&list=PLm3B56ql_akNcvH8vvJRYOc7TbYhRs19M)
-    - Notes are in Progress. See Westin
+    - Notes are in Progress. See Weston
 - [Build a 65c02-based computer from scratch YT series](https://youtu.be/LnzuMJLZRdU?si=9LvxP228M4_oDLGK)
     - Helpful resource for refreshing on computer hardware and assembly
     - Notes are in Progress. -MR
