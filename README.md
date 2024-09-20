@@ -18,7 +18,7 @@
 In the ShompOS/, run `make run` to build the OS and run it.
 
 Other helpful commands:
-`make clean`: Removes all build artifacts
-`make`: Builds the project
+- `make clean`: Removes all build artifacts
+- `make`: Builds the project
 
 Under development, more to be added.
