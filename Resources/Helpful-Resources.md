@@ -14,6 +14,7 @@
     - Written in C++, not C
 - [BrokenThrorn Entertainment OS Development Series](http://www.brokenthorn.com/Resources/OSDevIndex.html)
     - If someone checks this out, please let us know
+- [OS12: Basic Keyboard Driver (x86 Interrupts)](https://youtu.be/YtnNX074jMU?si=dnlJ8g2pHdyQxCb2)
 - More projects can be found on the [OSDev Project page](https://wiki.osdev.org/Projects)
 
 
