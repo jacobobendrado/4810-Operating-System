@@ -3,7 +3,7 @@
 ## Our Goal
 - Learn as much as possible about operating systems, low-level programming, and computer hardware
 - Build an operating system in C using the x86 architecture
-- Structure the OS in independently runnable section aimed as an educational resource
+- Structure the OS in independently runnable sections aimed as an educational resource
 
 ## Platform
 - Language: C
