@@ -78,7 +78,8 @@
 - When a user requests an I/O operation on the file, the kernel code converts the current offset to a block number, uses this number as an index in the block addresses table and reads or writes the physical block.
 - Like blocks, each inode has a numerical address. It is extremely important to note that unlike block addresses, **inode addresses start at 1**.
 ###### Inode Structure Diagram
->![[ext2-inode-structure.png]]
+>![ext2-inode-structure](https://github.com/user-attachments/assets/0c829bb8-502f-411e-a327-226dd57eec8f)
+
 
 In the past, the structure may have consisted of about twelve pointers, but most modern file systems use fifteen pointers. These pointers consist of (assuming 15 pointers in the inode)
 
@@ -133,16 +134,19 @@ To see this in action, run `stat <filename>` in a Linux terminal. `stat` displa
 #### Ext2 Physical Structure
 The physical structure of a filesystem is represented in this table:
 
->![[ext2-structure-1.png]]
+>![ext2-structure-1](https://github.com/user-attachments/assets/012c19ef-3a65-47ff-82e4-cdbecc8fb214)
+
 
 Each block group contains a redundant copy of crucial filesystem control informations (superblock and the filesystem descriptors) and also contains a part of the filesystem (a block bitmap, an inode bitmap, a piece of the inode table, and data blocks). The structure of a block group is represented in this table:
 
->![[ext2-structure-2.png]]
+>![ext2-structure-2](https://github.com/user-attachments/assets/9afedf5a-0c73-4722-b146-3c6713423efc)
+
 
 Using block groups is a big win in terms of reliability: since the control structures are replicated in each block group, it is easy to recover from a filesystem where the superblock has been corrupted. This structure also helps to get good performances: by reducing the distance between the inode table and the data blocks, it is possible to reduce the disk head seeks during I/O on files.
 
 Here is another pictorial representation:
->![[ext2-structure-5.png]]
+>![ext2-structure-5](https://github.com/user-attachments/assets/54a6ab39-cca1-4021-bad8-fa81babcc512)
+
 #### Directories
 - Each directory is a list of directory entries
 - Each directory entry associates one file name with one inode number, and consists of the inode number, the length of the file name, and the actual text of the file name
@@ -152,15 +156,18 @@ Here is another pictorial representation:
 - Accessing the file by either name results in the same inode number, and therefore the same data
 - The special directories "." (current directory) and ".." (parent directory) are implemented by storing the names "." and ".." in the directory, and the inode number of the current and parent directories in the inode field. The only special treatment these two entries receive is that they are automatically created when any new directory is made, and they cannot be deleted.
 ###### Basic Directory Structure
->![[Pasted image 20240929173024.png]]
+>![dir-structure](https://github.com/user-attachments/assets/4ba87e71-dbf5-4aa9-b41b-10595f6188da)
+
 
 ###### Ext2 Directory Physical Structure
 In Ext2fs, directories are managed as linked lists of variable length entries. Each entry contains the inode number, the entry length, the file name and its length. By using variable length entries, it is possible to implement long file names without wasting disk space in directories. The structure of a directory entry is shown in this table:
 
->![[ext2-structure-3.png]]
+>![ext2-structure-3](https://github.com/user-attachments/assets/e0c40f14-ca16-4268-9193-7bfa750cff46)
+
 
 As an example, The next table represents the structure of a directory containing three files: file1, long_file_name, and f2:
-> ![[ext2-structure-4.png]]
+> ![ext2-structure-4](https://github.com/user-attachments/assets/cccfe075-e2fe-4d93-87bc-1471da9e2f50)
+
 
 #### Allocating Data
 - When a new file or directory is created, ext2 must decide where to store the data. If the disk is mostly empty, then data can be stored almost anywhere. However, clustering the data with related data will minimize seek times and maximize performance.
@@ -174,7 +181,8 @@ As an example, The next table represents the structure of a directory containing
 - **The VFS defines a set of functions that every filesystem has to implement**
 - This interface is made up of a set of operations associated to three kinds of objects: filesystems, inodes, and open files
 ###### Virtual File System Diagram
-> ![[VFS-Scheme 1.png]]
+> ![VFS-Scheme](https://github.com/user-attachments/assets/b8a7c078-8bfb-4425-8064-5045dfdcf394)
+
 
 ## Quick Summaries
 
