@@ -33,11 +33,6 @@ Each of the interrupts have a label given, from IRQ 0 to IRQ 15, where IRQ 2 sho
 IRQs 0 through 7 initially go to 08h through 0Fh, and IRQs 8 through 15 are set to 70h through 77h.
 Because the first set of IRQs are mapped to the part of the IDT that is generally reserved for exceptions, they are often remapped, such as to 78h through 7Fh.
 
-### Global Descriptor Table
-The Global Descriptor Table, or GDT, is a table that tells the CPU about memory segments.
-It is able to have up to 8192 entries, and each entry is a complex data structure.
-
 # Resources
 [OSDev](https://wiki.osdev.org/Interrupts)
 [Random Site on PICs](http://wearcam.org/seatsale/programs/www.beyondlogic.org/interrupts/interupt.htm)
-[Global Descriptor Table](https://wiki.osdev.org/Global_Descriptor_Table)
