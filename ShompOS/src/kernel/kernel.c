@@ -1,11 +1,16 @@
 // IDT_SIZE: Specific to x86 architecture
 #define IDT_SIZE 256
+// EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
+#define EXCEPTIONS_SIZE 32
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
 #define KERNEL_CODE_SEGMENT_OFFSET 0x8
 // 32-bit Interrupt gate: 0x8E
 // ( P=1, DPL=00b, S=0, type=1110b => type_attr=1000_1110b=0x8E) 
 // (see https://wiki.osdev.org/Interrupt_Descriptor_Table#Structure_on_IA-32)
 #define IDT_INTERRUPT_GATE_32BIT 0x8E
+// 32-bit Trap gate: 0x8F
+// ( P=1, DPL=00b, S=0, type=1111b => type_attr=1000_1111b=0x8F)
+#define IDT_TRAP_GATE_32BIT 0x8F
 // IO Ports for PICs
 #define PIC1_COMMAND_PORT 0x20
 #define PIC1_DATA_PORT 0x21
@@ -25,10 +30,12 @@
 // ----- Assembly functions -----
 extern void load_gdt();
 extern void keyboard_handler();
+extern void int_zero_handler();
 extern char ioport_in(uint16_t port);
 extern void ioport_out(uint16_t port, uint8_t data);
 extern void load_idt(uint32_t* idt_address);
 extern void enable_interrupts();
+extern void* isr_stub_table[];
 
 // ----- Structs -----
 struct IDT_pointer {
@@ -53,7 +60,6 @@ size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
-
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -156,15 +162,33 @@ void terminal_writestring(const char* data)
 	terminal_write(data, strlen(data));
 }
 
+void exception_handler() {
+	terminal_writestring("Exception!");
+	__asm__ volatile ("cli; hlt");
+}
+
+void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
+	IDT[interrupt_num].offset_lowerbits = (uint32_t)offset & 0x0000FFFF;
+	IDT[interrupt_num].selector = KERNEL_CODE_SEGMENT_OFFSET;
+	IDT[interrupt_num].zero = 0;
+	IDT[interrupt_num].type_attr = flags;
+	IDT[interrupt_num].offset_upperbits = ((uint32_t)offset & 0xFFFF0000) >> 16;
+}
 
 // ----- PageKey Video -----
 void init_idt() {
-	unsigned int offset = (unsigned int)keyboard_handler;
-	IDT[0x21].offset_lowerbits = offset & 0x0000FFFF; 
-	IDT[0x21].selector = KERNEL_CODE_SEGMENT_OFFSET;
-	IDT[0x21].zero = 0;
-	IDT[0x21].type_attr = IDT_INTERRUPT_GATE_32BIT;
-	IDT[0x21].offset_upperbits = (offset & 0xFFFF0000) >> 16;
+	unsigned int offset;
+
+	offset = (unsigned int)int_zero_handler;
+	idt_set_descriptor(0x00, offset,  IDT_TRAP_GATE_32BIT);
+
+	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
+		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
+	}
+
+	offset = (unsigned int)keyboard_handler;
+	idt_set_descriptor(0x21, offset,  IDT_INTERRUPT_GATE_32BIT);
+
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
 	// by sending magic values (initialization command word)
@@ -229,7 +253,17 @@ void handle_keyboard_interrupt() {
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
 		if (keycode < 0) return;
 		terminal_putchar(keyboard_map[(uint8_t) keycode]);
+		int temp;
+		__asm__ volatile (
+		  "div %1\n\t"
+		  : "=a" (temp)
+		  : "r" (0), "a" (1)
+		  : "cc");
 	}
+}
+
+void handle_div_by_zero() {
+	terminal_writestring("Div by zero!");
 }
 
 
