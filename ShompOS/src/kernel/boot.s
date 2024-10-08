@@ -65,6 +65,7 @@ int_zero_handler:
     cld
     call handle_div_by_zero
     popal
+    movl $1, %edx
     iret 
 
 # reads a byte from an IO port (address
