@@ -64,8 +64,10 @@ int_zero_handler:
     pushal
     cld
     call handle_div_by_zero
+    movl 0x20(%esp), %edx
+    addl $2, %edx
+    movl %edx, 0x20(%esp)
     popal
-    movl $1, %edx
     iret 
 
 # reads a byte from an IO port (address
