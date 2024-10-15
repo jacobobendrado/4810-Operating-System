@@ -182,7 +182,7 @@ void init_idt() {
 	offset = (unsigned int)int_zero_handler;
 	idt_set_descriptor(0x00, offset,  IDT_TRAP_GATE_32BIT);
 
-	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
+	for (int i = 1; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
@@ -252,13 +252,17 @@ void handle_keyboard_interrupt() {
 	if (status & 0x1) {
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
 		if (keycode < 0) return;
-		terminal_putchar(keyboard_map[(uint8_t) keycode]);
-		int temp;
-		__asm__ volatile (
-		  "div %1\n\t"
-		  : "=a" (temp)
-		  : "r" (0), "a" (1)
-		  : "cc");
+		if (keyboard_map[(uint8_t) keycode] == '0') {
+			int temp;
+			__asm__ volatile (
+			  "div %1\n\t"
+			  : "=a" (temp)
+			  : "r" (0), "a" (1)
+			  : "cc");
+		}
+		else {
+			terminal_putchar(keyboard_map[(uint8_t) keycode]);
+		}
 	}
 }
 
