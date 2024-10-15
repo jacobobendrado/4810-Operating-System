@@ -19,8 +19,8 @@ ISO_OUT=	build/shompOS.iso
 all: build
 build: clean
 	mkdir -p build
-	${AS} ${BOOT} -ggdb -o build/boot.o
-	${CC} ${CFLAGS} -ggdb -c ${KERNEL} -o build/kernel.o
+	${AS} ${BOOT} -o build/boot.o
+	${CC} ${CFLAGS} -c ${KERNEL} -o build/kernel.o
 	${LD} ${LDFLAGS} -o ${KERNEL_OUT} build/boot.o build/kernel.o
 run: build
 	qemu-system-i386 -kernel ${KERNEL_OUT} -monitor stdio
@@ -31,7 +31,6 @@ build-iso: build
 	grub-mkrescue -o ${ISO_OUT} build/iso
 	rm -rf build/iso
 run-iso: build-iso
-	qemu-system-i386 -cdrom ${ISO_OUT} -s -S &
-	gdb ${KERNEL_OUT} -x debug.gdb
+	qemu-system-i386 -cdrom ${ISO_OUT}
 clean:
 	rm -rf build
