@@ -37,29 +37,43 @@ extern void load_idt(uint32_t* idt_address);
 extern void enable_interrupts();
 extern void* isr_stub_table[];
 
+
+// ----- Function Prototypes ----- 
+void terminal_writestring(const char* data);
+
+
 // ----- Structs -----
-struct IDT_pointer {
+typedef struct _IDT_pointer {
 	uint16_t limit;
 	uint32_t base;
-} __attribute__((packed));
-struct IDT_entry {
+} __attribute__((packed)) IDT_pointer;
+typedef struct _IDT_entry {
 	uint16_t offset_lowerbits; 
 	uint16_t selector; 
 	uint8_t zero; 
 	uint8_t type_attr; 
 	uint16_t offset_upperbits; 
-} __attribute__((packed));
-
+} __attribute__((packed)) IDT_entry;
+typedef struct _KEY_state {
+	int unused : 29;
+	int alt : 1;
+	int ctrl : 1;
+	int shift : 1;
+} KEY_state;
 
 
 // ----- Global variables -----
-struct IDT_entry IDT[IDT_SIZE]; // This is our entire IDT. Room for 256 interrupts
+IDT_entry IDT[IDT_SIZE]; // This is our entire IDT. Room for 256 interrupts
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
+KEY_state special_key_state = {0,0,0,0};
+uint8_t control_key_flags = 0;
+
+
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -112,6 +126,8 @@ void terminal_initialize(void)
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
 	}
+	char* term = "shompOS>";
+	terminal_writestring(term);
 }
 
 void terminal_advance_row()
@@ -136,7 +152,9 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 void terminal_putchar(char c)
 {
     if (c == '\n') {
-	   terminal_advance_row();
+		char* term = "shompOS>";
+		terminal_advance_row();
+		terminal_writestring(term);
 	} else {
 		terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
 		if (++terminal_column == VGA_WIDTH) {
@@ -180,14 +198,14 @@ void init_idt() {
 	unsigned int offset;
 
 	offset = (unsigned int)int_zero_handler;
-	idt_set_descriptor(0x00, offset,  IDT_TRAP_GATE_32BIT);
+	idt_set_descriptor(0x00, (void*)offset,  IDT_TRAP_GATE_32BIT);
 
 	for (int i = 1; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
 	offset = (unsigned int)keyboard_handler;
-	idt_set_descriptor(0x21, offset,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
@@ -231,8 +249,8 @@ void init_idt() {
 	// create a pointer to our idt, this is 
 	// required to be the format of limit (size
 	// in bytes - 1) and base (starting address)
-	struct IDT_pointer idt_ptr;
-	idt_ptr.limit = (sizeof(struct IDT_entry) *IDT_SIZE) - 1;
+	IDT_pointer idt_ptr;
+	idt_ptr.limit = (sizeof(IDT_entry) *IDT_SIZE) - 1;
 	idt_ptr.base = (uint32_t) &IDT;
 
 	// pass address to load_idt (defined in boot.s)
@@ -249,19 +267,37 @@ void handle_keyboard_interrupt() {
 	// are handling it.
 	ioport_out(PIC1_COMMAND_PORT, 0x20);
 	unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
+	
 	if (status & 0x1) {
+		
+		// the PIC will hand us an 8-bit value. bits 0..6 
+		// represent the key pressed, this is NOT an ascii 
+		// value. bit 7 is 0 if the key has just been pressed,
+		// 1 if the key has just been released.  
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
-		if (keycode < 0) return;
-		if (keyboard_map[(uint8_t) keycode] == '0') {
+		
+		// set shift flag based on keycode MSB 
+		if (keycode == 42 || (uint8_t)keycode == 170 ||
+			keycode == 54 || (uint8_t)keycode == 182){
+			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
+		} 
+		
+		// ignore key releases
+		else if ((uint8_t)keycode > 127) return;
+		
+		// execute div by 0 exception on "0" press
+		else if (keyboard_map[(uint8_t) keycode] == '0') {
 			int temp;
 			__asm__ volatile (
 			  "div %1\n\t"
 			  : "=a" (temp)
 			  : "r" (0), "a" (1)
 			  : "cc");
-		}
+		} 
+		
+		// print character with SHFT modification
 		else {
-			terminal_putchar(keyboard_map[(uint8_t) keycode]);
+			terminal_putchar(keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32));
 		}
 	}
 }
