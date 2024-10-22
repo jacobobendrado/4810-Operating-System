@@ -2,6 +2,10 @@
 The Global Descriptor Table, or GDT, is a table that tells the CPU about memory segments.
 It is able to have up to 8192 entries, and each entry is a complex data structure.
 
+Modern operating systems use the GDT very little.
+Besides a null segment, there are only a few segments that need to be defined.
+A kernel-space code segment and data segment as well as a user-space code and data segment are the most important segments.
+
 ### Local Descriptor Table
 Like the GDT, it holds segment descriptors.
 However, every task and thread can have their own LDT, so the OS can change the LDT register when the task switches.

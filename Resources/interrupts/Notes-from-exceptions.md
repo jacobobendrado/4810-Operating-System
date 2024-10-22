@@ -11,3 +11,4 @@ Some, but not all, exceptions push an error code to the stack to provide additio
 ### Resources
 [OSDev](https://wiki.osdev.org/Exceptions)
 [Tutorial](https://wiki.osdev.org/Interrupts_Tutorial)
+[Forum Post with List of Recoveries from Exceptions](https://forum.osdev.org/viewtopic.php?p=243553#p243553)
