@@ -1,3 +1,5 @@
+PATH := $(HOME)/opt/cross/bin:$(PATH)
+
 # Compiler and linker
 CC = i686-elf-gcc
 LD = i686-elf-ld
