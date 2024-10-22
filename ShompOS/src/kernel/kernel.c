@@ -55,10 +55,10 @@ typedef struct _IDT_entry {
 	uint16_t offset_upperbits; 
 } __attribute__((packed)) IDT_entry;
 typedef struct _KEY_state {
-	int unused : 29;
-	int alt : 1;
-	int ctrl : 1;
-	int shift : 1;
+	uint8_t unused : 5;
+	uint8_t alt : 1;
+	uint8_t ctrl : 1;
+	uint8_t shift : 1;
 } KEY_state;
 
 
@@ -284,7 +284,7 @@ void handle_keyboard_interrupt() {
 		
 		// ignore key releases
 		else if ((uint8_t)keycode > 127) return;
-		
+
 		// execute div by 0 exception on "0" press
 		else if (keyboard_map[(uint8_t) keycode] == '0') {
 			int temp;
