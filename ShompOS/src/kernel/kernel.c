@@ -21,45 +21,12 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // ----- Includes -----
-#include "keyboard_map.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-
-// ----- Assembly functions -----
-extern void load_gdt();
-extern void keyboard_handler();
-extern void int_zero_handler();
-extern char ioport_in(uint16_t port);
-extern void ioport_out(uint16_t port, uint8_t data);
-extern void load_idt(uint32_t* idt_address);
-extern void enable_interrupts();
-extern void* isr_stub_table[];
-
-
-// ----- Function Prototypes ----- 
-void terminal_writestring(const char* data);
-
-
-// ----- Structs -----
-typedef struct _IDT_pointer {
-	uint16_t limit;
-	uint32_t base;
-} __attribute__((packed)) IDT_pointer;
-typedef struct _IDT_entry {
-	uint16_t offset_lowerbits; 
-	uint16_t selector; 
-	uint8_t zero; 
-	uint8_t type_attr; 
-	uint16_t offset_upperbits; 
-} __attribute__((packed)) IDT_entry;
-typedef struct _KEY_state {
-	uint8_t unused : 5;
-	uint8_t alt : 1;
-	uint8_t ctrl : 1;
-	uint8_t shift : 1;
-} KEY_state;
+#include <kernel/kernel.h>
+#include <IO/keyboard_map.h>
+#include <memory/heap.h>
 
 
 // ----- Global variables -----
@@ -105,16 +72,8 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-size_t strlen(const char* str)
-{
-	size_t len = 0;
-	while (str[len])
-		len++;
-	return len;
-}
 
-
-void terminal_initialize(void)
+void init_terminal(void)
 {
 	terminal_row = 0;
 	terminal_column = 0;
@@ -209,7 +168,7 @@ void init_idt() {
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
-	// by sending magic values (initialization command word)
+	// by sending magic values (initialization command words)
 	// to their I/O ports. 
 
 	// ICW1: begin PIC initialization
@@ -258,7 +217,7 @@ void init_idt() {
 	load_idt((uint32_t*) &idt_ptr);
 }
 
-void kb_init() {
+void init_kb() {
 	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
 
@@ -293,7 +252,13 @@ void handle_keyboard_interrupt() {
 			  : "=a" (temp)
 			  : "r" (0), "a" (1)
 			  : "cc");
+		}
+
+		// simple allocation routine
+		else if (keyboard_map[(uint8_t) keycode] == 'h') {
+			simple_allocate(20);
 		} 
+
 		
 		// print character with SHFT modification
 		else {
@@ -309,9 +274,47 @@ void handle_div_by_zero() {
 
 // ----- Entry point -----
 void kernel_main() {
-    terminal_initialize();
+    init_terminal();
 	init_idt();
-	kb_init();
+	init_kb();
+	init_heap();
 	enable_interrupts();
 	while(1);
+}
+
+
+// ----- NEED TO BE BROKEN INTO LIBC -----
+size_t strlen(const char* str)
+{
+	size_t len = 0;
+	while (str[len])
+		len++;
+	return len;
+}
+
+void* memset(void* bufptr, int value, size_t size) {
+	unsigned char* buf = (unsigned char*) bufptr;
+	for (size_t i = 0; i < size; i++)
+		buf[i] = (unsigned char) value;
+	return bufptr;
+}
+
+void* memcpy(void* restrict dstptr, const void* restrict srcptr, size_t size) {
+	unsigned char* dst = (unsigned char*) dstptr;
+	const unsigned char* src = (const unsigned char*) srcptr;
+	for (size_t i = 0; i < size; i++)
+		dst[i] = src[i];
+	return dstptr;
+}
+
+int memcmp(const void* aptr, const void* bptr, size_t size) {
+	const unsigned char* a = (const unsigned char*) aptr;
+	const unsigned char* b = (const unsigned char*) bptr;
+	for (size_t i = 0; i < size; i++) {
+		if (a[i] < b[i])
+			return -1;
+		else if (b[i] < a[i])
+			return 1;
+	}
+	return 0;
 }
