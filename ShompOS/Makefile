@@ -32,5 +32,7 @@ build-iso: build
 	rm -rf build/iso
 run-iso: build-iso
 	qemu-system-i386 -cdrom ${ISO_OUT}
+run-curses-iso: build-iso
+	qemu-system-i386 -display curses -cdrom ${ISO_OUT}
 clean:
 	rm -rf build

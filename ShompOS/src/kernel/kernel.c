@@ -22,6 +22,7 @@
 
 // ----- Includes -----
 #include "keyboard_map.h"
+#include "keyboard_map_shift.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -55,10 +56,11 @@ typedef struct _IDT_entry {
 	uint16_t offset_upperbits; 
 } __attribute__((packed)) IDT_entry;
 typedef struct _KEY_state {
-	int unused : 29;
-	int alt : 1;
-	int ctrl : 1;
-	int shift : 1;
+	uint8_t unused : 4;
+    uint8_t caps: 1;
+	uint8_t alt : 1;
+	uint8_t ctrl : 1;
+	uint8_t shift : 1;
 } KEY_state;
 
 
@@ -70,7 +72,7 @@ size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
-KEY_state special_key_state = {0,0,0,0};
+KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
 
@@ -280,11 +282,15 @@ void handle_keyboard_interrupt() {
 		if (keycode == 42 || (uint8_t)keycode == 170 ||
 			keycode == 54 || (uint8_t)keycode == 182){
 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
-		} 
-		
+		}
+
+		else if(keycode == 0x3A){
+            		special_key_state.caps = 1 - special_key_state.caps;
+        	}
+
 		// ignore key releases
 		else if ((uint8_t)keycode > 127) return;
-		
+
 		// execute div by 0 exception on "0" press
 		else if (keyboard_map[(uint8_t) keycode] == '0') {
 			int temp;
@@ -293,11 +299,29 @@ void handle_keyboard_interrupt() {
 			  : "=a" (temp)
 			  : "r" (0), "a" (1)
 			  : "cc");
-		} 
+		}
 		
-		// print character with SHFT modification
-		else {
-			terminal_putchar(keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32));
+		//output
+		else{	
+			char character = keyboard_map[(uint8_t) keycode];
+			//handle shift and caps behavior with alphabet characters
+			if(character >= 'a' && character <= 'z'){
+				if((special_key_state.shift ^ special_key_state.caps) == 1){
+					terminal_putchar(character - 32);
+				}
+				else{
+					terminal_putchar(character);
+				}
+			}
+			//handle shift behavior with non alphabet characters
+			else{
+				if(special_key_state.shift == 1){
+					terminal_putchar(keyboard_map_shift[(uint8_t) keycode]);
+				}
+				else{
+					terminal_putchar(character);
+				}
+			}
 		}
 	}
 }
