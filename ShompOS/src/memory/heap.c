@@ -16,8 +16,10 @@ void init_heap() {
         used_list[i].next = &used_list[i];
     }
 
-    // create default heap from 0x400000000..0x500000000
-    // this block is scale 28 (2^28 bytes) 
+    // create default heap from 0x4000000..0x5000000
+    // this block is scale 28 (2^25 bytes) 
+    // the scale and address are copied from MentOS but also changed
+    // slightly. we may want our heap in another location.
     block_header* full_heap = (block_header*)HEAP_LOWER_BOUND;
     free_list[DEFAULT_HEAP_SCALE].next = (list_header*)full_heap;
     
@@ -34,18 +36,17 @@ block_header* __blkmngr_find_fit(size_t request_scale) {
     block_header* curr = (block_header*)&free_list[request_scale];
     block_header* best_fit = NULL;
 
+    // TODO: make scan larger scales as well
     // self-looping next indicates end-of-list
     // NULL next indicates error
     while ((block_header*)curr->list.next != curr && curr->list.next != NULL){
+        curr = (block_header*)(curr->list.next);
         if (request_scale <= curr->scale && (best_fit == NULL || (curr->scale < best_fit->scale))) {
             // update best_fit and break if its perfect
             best_fit = curr; 
             if (request_scale == best_fit->scale) break;
-
         }
-        curr = (block_header*)(curr->list.next);
     } 
-
     return best_fit;
 }
 
@@ -71,7 +72,7 @@ void* simple_allocate(size_t raw_size) {
 
         if (request_scale < block->scale) {
             // __blkmngr_split_block()
-            char* str = "\natoo big of block\n";
+            char* str = "\ntoo big of block. splitting...\n";
             terminal_writestring(str);
         }
 
@@ -80,6 +81,7 @@ void* simple_allocate(size_t raw_size) {
         terminal_writestring(str);
         return NULL;
     }
+    return block;
 }
 
 

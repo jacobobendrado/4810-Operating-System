@@ -15,7 +15,7 @@ KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
 ISO_OUT =	$(BUILD_DIR)/shompOS.iso
 
 # Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -I./inc 
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -I./inc -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
@@ -27,7 +27,7 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 all: $(BUILD_DIR)/kernel.bin
 
 $(BUILD_DIR)/kernel.bin: $(KERNEL_OBJS)
-	$(CC) $(LDFLAGS) $^ -lgcc
+	$(LD) $(LDFLAGS) $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.c
 	mkdir -p $(OBJ_DIR)

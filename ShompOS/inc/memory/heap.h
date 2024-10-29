@@ -4,11 +4,11 @@
 #include <kernel/kernel.h>
 
 
-#define HEAP_LOWER_BOUND 0x40000000
-#define HEAP_UPPER_BOUND 0x50000000
-#define DEFAULT_HEAP_SCALE 20
-#define MAX_BLOCK_SCALE 128
-#define MIN_BLOCK_SCALE 2
+#define HEAP_LOWER_BOUND 0x4000000
+#define HEAP_UPPER_BOUND 0x5000000
+#define DEFAULT_HEAP_SCALE 0x19
+#define MAX_BLOCK_SCALE 0x7F
+#define MIN_BLOCK_SCALE 0x2
 
 // generic struct for any linked lists. 8 bytes.
 typedef struct _list_header {
@@ -25,7 +25,7 @@ typedef struct _block_header {
     list_header list;
     uint8_t is_free : 1;
     uint8_t scale : 7;
-} block_header;
+}  block_header;
 
 void init_heap();
 void* simple_allocate(size_t size);

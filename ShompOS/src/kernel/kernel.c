@@ -256,7 +256,7 @@ void handle_keyboard_interrupt() {
 
 		// simple allocation routine
 		else if (keyboard_map[(uint8_t) keycode] == 'h') {
-			simple_allocate(20);
+			simple_allocate(0x19);
 		} 
 
 		
