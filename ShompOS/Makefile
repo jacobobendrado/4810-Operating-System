@@ -10,7 +10,7 @@ CFLAGS = -ffreestanding -O2 -Wall -Wextra
 LDFLAGS = -T src/linker.ld -nostdlib
 
 
-BOOT=		src/kernel/boot.s
+BOOT=		src/kernel/boot.S
 KERNEL=		src/kernel/kernel.c
 LINKER=		src/linker.ld
 KERNEL_OUT=	build/shompOS.bin

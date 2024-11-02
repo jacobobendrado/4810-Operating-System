@@ -13,8 +13,7 @@
 .long CHECKSUM
 
 .section .text
-.include "src/kernel/gdt.s"
-.include "src/kernel/isr.S"
+.include "src/kernel/gdt.S"
 # these functions will be called from kernel.c
 .global start
 .global load_gdt

@@ -1,7 +1,5 @@
 // IDT_SIZE: Specific to x86 architecture
 #define IDT_SIZE 256
-// EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
-#define EXCEPTIONS_SIZE 32
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
 #define KERNEL_CODE_SEGMENT_OFFSET 0x8
 // 32-bit Interrupt gate: 0x8E
@@ -35,7 +33,6 @@ extern char ioport_in(uint16_t port);
 extern void ioport_out(uint16_t port, uint8_t data);
 extern void load_idt(uint32_t* idt_address);
 extern void enable_interrupts();
-extern void* isr_stub_table[];
 
 // ----- Structs -----
 struct IDT_pointer {
@@ -162,11 +159,6 @@ void terminal_writestring(const char* data)
 	terminal_write(data, strlen(data));
 }
 
-void exception_handler() {
-	terminal_writestring("Exception!");
-	__asm__ volatile ("cli; hlt");
-}
-
 void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 	IDT[interrupt_num].offset_lowerbits = (uint32_t)offset & 0x0000FFFF;
 	IDT[interrupt_num].selector = KERNEL_CODE_SEGMENT_OFFSET;
@@ -181,10 +173,6 @@ void init_idt() {
 
 	offset = (unsigned int)int_zero_handler;
 	idt_set_descriptor(0x00, offset,  IDT_TRAP_GATE_32BIT);
-
-	for (int i = 1; i < EXCEPTIONS_SIZE; i++) {
-		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
-	}
 
 	offset = (unsigned int)keyboard_handler;
 	idt_set_descriptor(0x21, offset,  IDT_INTERRUPT_GATE_32BIT);
