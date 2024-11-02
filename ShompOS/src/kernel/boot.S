@@ -66,7 +66,7 @@ int_zero_handler:
 
     # Increment the instruction pointer for returning
     # to skip the div instruction.
-    # Should be changed later to kill the process
+    # In a full OS, it should kill the process
     movl 0x20(%esp), %edx
     addl $2, %edx
     movl %edx, 0x20(%esp)
