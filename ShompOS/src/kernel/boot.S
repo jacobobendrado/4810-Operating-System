@@ -30,7 +30,7 @@
 .extern handle_keyboard_interrupt
 .extern handle_div_by_zero
 
-# loads the gdt_descriptor found in gdt.s
+# loads the gdt_descriptor found in gdt.S
 load_gdt:
     lgdt gdt_descriptor
     ret
@@ -45,13 +45,12 @@ load_idt:
     lidt (%edx)
     ret
 
-# guess.
 enable_interrupts:
     sti
     ret
 
 # pushes all registers before calling C 
-# function. youtube man said to.
+# function.
 keyboard_handler:
     pushal
     cld
@@ -64,8 +63,8 @@ int_zero_handler:
     cld
     call handle_div_by_zero
 
-    # Increment the instruction pointer for returning
-    # to skip the div instruction.
+    # Increment the instruction pointer for
+    # returning to skip the div instruction.
     # In a full OS, it should kill the process
     movl 0x20(%esp), %edx
     addl $2, %edx
