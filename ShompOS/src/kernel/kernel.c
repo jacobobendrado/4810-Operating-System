@@ -208,7 +208,6 @@ void init_idt() {
 
 	// ICW4: environment information
 	// sending a 1 tells the PICs to use 8086 mode.
-	// i'm blindly trusting the wiki on this one
 	ioport_out(PIC1_DATA_PORT, 0x1);
 	ioport_out(PIC2_DATA_PORT, 0x1);
 
@@ -223,7 +222,7 @@ void init_idt() {
 	idt_ptr.limit = (sizeof(struct IDT_entry) *IDT_SIZE) - 1;
 	idt_ptr.base = (uint32_t) &IDT;
 
-	// pass address to load_idt (defined in boot.s)
+	// pass address to load_idt (defined in boot.S)
 	// where it will be loaded in the IDT register
 	load_idt((uint32_t*) &idt_ptr);
 }
