@@ -20,7 +20,8 @@ LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/boot.o \
-				$(OBJ_DIR)/heap.o
+				$(OBJ_DIR)/heap.o \
+				$(OBJ_DIR)/list_header.o
 
 .PHONY: all build run run-curses clean
 
@@ -51,6 +52,8 @@ run-curses: build
 debug: build
 	qemu-system-i386 -s -S -cdrom $(ISO_OUT) &
 	gdb $(KERNEL_OUT) -x debug.gdb
+debug-curses: build
+	qemu-system-i386 -display curses -s -S -cdrom $(ISO_OUT) 
 
 clean:
 	rm -rf build

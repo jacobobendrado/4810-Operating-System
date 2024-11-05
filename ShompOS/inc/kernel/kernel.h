@@ -34,6 +34,7 @@ typedef struct _KEY_state {
 void terminal_writestring(const char* data);
 
 size_t strlen(const char* str);
+int max(int a, int b);
 void* memset(void* bufptr, int value, size_t size);
 void* memcpy(void* restrict dstptr, const void* restrict srcptr, size_t size);
 int memcmp(const void* aptr, const void* bptr, size_t size);

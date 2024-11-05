@@ -256,9 +256,14 @@ void handle_keyboard_interrupt() {
 
 		// simple allocation routine
 		else if (keyboard_map[(uint8_t) keycode] == 'h') {
-			simple_allocate(0x19);
+			simple_allocate(0x3);
 		} 
-
+		else if (keyboard_map[(uint8_t) keycode] == 'j') {
+			simple_allocate(0x1);
+		} 
+		else if (keyboard_map[(uint8_t) keycode] == 'g') {
+			simple_allocate(0x4);
+		} 
 		
 		// print character with SHFT modification
 		else {
@@ -277,7 +282,7 @@ void kernel_main() {
     init_terminal();
 	init_idt();
 	init_kb();
-	init_heap();
+	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
 	while(1);
 }
@@ -291,6 +296,15 @@ size_t strlen(const char* str)
 		len++;
 	return len;
 }
+
+inline int max(int a, int b) {
+	if (a >= b) {
+		return a;
+	} else {
+		return b;
+	}
+}
+
 
 void* memset(void* bufptr, int value, size_t size) {
 	unsigned char* buf = (unsigned char*) bufptr;
