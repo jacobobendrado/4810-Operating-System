@@ -27,6 +27,7 @@
 #include <kernel/kernel.h>
 #include <IO/keyboard_map.h>
 #include <memory/heap.h>
+#include <fake_libc/fake_libc.h>
 
 
 // ----- Global variables -----
@@ -38,9 +39,9 @@ size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
 KEY_state special_key_state = {0,0,0,0};
-uint8_t control_key_flags = 0;
 
-
+// ----- debugging/example variables -----
+void* ptr[10];
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -91,9 +92,12 @@ void init_terminal(void)
 
 void terminal_advance_row()
 {
-	if (++terminal_row == VGA_HEIGHT)
+	if (++terminal_row == VGA_HEIGHT){
 		terminal_row = 0;
-	terminal_column=0;
+		terminal_clear();
+	}
+
+	terminal_column = 0;
 }
 
 
@@ -137,6 +141,14 @@ void terminal_write(const char* data, size_t size)
 void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
+}
+
+void terminal_clear() {
+	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
+		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+			terminal_putentryat(' ', terminal_color, x, y);
+		}	
+	}
 }
 
 void exception_handler() {
@@ -254,16 +266,57 @@ void handle_keyboard_interrupt() {
 			  : "cc");
 		}
 
+
+
+		else if (keyboard_map[(uint8_t) keycode] == 'a') {
+			free(&ptr[1]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'q') {
+			free(&ptr[2]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'w') {
+			free(&ptr[3]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'e') {
+			free(&ptr[4]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'r') {
+			free(&ptr[5]);
+		} else if (keyboard_map[(uint8_t) keycode] == 't') {
+			free(&ptr[6]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'y') {
+			free(&ptr[7]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'u') {
+			free(&ptr[8]);
+		} else if (keyboard_map[(uint8_t) keycode] == 'i') {
+			free(&ptr[9]);
+		} 
+
 		// simple allocation routine
-		else if (keyboard_map[(uint8_t) keycode] == 'h') {
-			simple_allocate(0x3);
+		else if (keyboard_map[(uint8_t) keycode] == '1') {
+			ptr[1] = allocate(1);
+		} else if (keyboard_map[(uint8_t) keycode] == '2') {
+			ptr[2] = allocate(8);
+		} else if (keyboard_map[(uint8_t) keycode] == '3') {
+			ptr[3] = allocate(24);
+		} else if (keyboard_map[(uint8_t) keycode] == '4') {
+			ptr[4] = allocate(1);
+		} else if (keyboard_map[(uint8_t) keycode] == '5') {
+			ptr[5] = allocate(8);
+		} else if (keyboard_map[(uint8_t) keycode] == '6') {
+			ptr[6] = allocate(24);
+		} else if (keyboard_map[(uint8_t) keycode] == '7') {
+			ptr[7] = allocate(56);
+		} else if (keyboard_map[(uint8_t) keycode] == '8') {
+			ptr[8] = allocate(120);
+		} else if (keyboard_map[(uint8_t) keycode] == '9') {
+			ptr[9] = allocate(248);
 		} 
-		else if (keyboard_map[(uint8_t) keycode] == 'j') {
-			simple_allocate(0x1);
+
+		
+		else if (keyboard_map[(uint8_t) keycode] == 'o') {
+			terminal_advance_row();
 		} 
-		else if (keyboard_map[(uint8_t) keycode] == 'g') {
-			simple_allocate(0x4);
+		else if (keyboard_map[(uint8_t) keycode] == 'p') {
+			print_free_counts();
 		} 
+		
 		
 		// print character with SHFT modification
 		else {
@@ -285,50 +338,4 @@ void kernel_main() {
 	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
 	while(1);
-}
-
-
-// ----- NEED TO BE BROKEN INTO LIBC -----
-size_t strlen(const char* str)
-{
-	size_t len = 0;
-	while (str[len])
-		len++;
-	return len;
-}
-
-inline int max(int a, int b) {
-	if (a >= b) {
-		return a;
-	} else {
-		return b;
-	}
-}
-
-
-void* memset(void* bufptr, int value, size_t size) {
-	unsigned char* buf = (unsigned char*) bufptr;
-	for (size_t i = 0; i < size; i++)
-		buf[i] = (unsigned char) value;
-	return bufptr;
-}
-
-void* memcpy(void* restrict dstptr, const void* restrict srcptr, size_t size) {
-	unsigned char* dst = (unsigned char*) dstptr;
-	const unsigned char* src = (const unsigned char*) srcptr;
-	for (size_t i = 0; i < size; i++)
-		dst[i] = src[i];
-	return dstptr;
-}
-
-int memcmp(const void* aptr, const void* bptr, size_t size) {
-	const unsigned char* a = (const unsigned char*) aptr;
-	const unsigned char* b = (const unsigned char*) bptr;
-	for (size_t i = 0; i < size; i++) {
-		if (a[i] < b[i])
-			return -1;
-		else if (b[i] < a[i])
-			return 1;
-	}
-	return 0;
 }

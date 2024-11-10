@@ -15,13 +15,13 @@ KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
 ISO_OUT =	$(BUILD_DIR)/shompOS.iso
 
 # Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -I./inc -ggdb
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/boot.o \
 				$(OBJ_DIR)/heap.o \
-				$(OBJ_DIR)/list_header.o
+				$(OBJ_DIR)/fake_libc.o
 
 .PHONY: all build run run-curses clean
 
