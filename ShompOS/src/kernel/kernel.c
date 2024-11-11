@@ -31,7 +31,6 @@
 // ----- Assembly functions -----
 extern void load_gdt();
 extern void keyboard_handler();
-extern void int_zero_handler();
 extern char ioport_in(uint16_t port);
 extern void ioport_out(uint16_t port, uint8_t data);
 extern void load_idt(uint32_t* idt_address);
@@ -181,10 +180,13 @@ void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
 }
+void kill_process() {
+	__asm__ volatile ("cli; hlt");
+}
 
 void exception_handler() {
 	terminal_writestring("Exception!");
-	__asm__ volatile ("cli; hlt");
+	kill_process();
 }
 
 void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
@@ -199,10 +201,7 @@ void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 void init_idt() {
 	unsigned int offset;
 
-	offset = (unsigned int)int_zero_handler;
-	idt_set_descriptor(0x00, (void*)offset,  IDT_TRAP_GATE_32BIT);
-
-	for (int i = 1; i < EXCEPTIONS_SIZE; i++) {
+	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 

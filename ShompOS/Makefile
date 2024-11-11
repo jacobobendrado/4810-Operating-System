@@ -6,11 +6,11 @@ LD = i686-elf-ld
 AS = i686-elf-as
 
 # Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -ggdb
 LDFLAGS = -T src/linker.ld -nostdlib
 
 
-BOOT=		src/kernel/boot.s
+BOOT=		src/kernel/boot.S
 KERNEL=		src/kernel/kernel.c
 LINKER=		src/linker.ld
 KERNEL_OUT=	build/shompOS.bin
@@ -31,7 +31,8 @@ build-iso: build
 	grub-mkrescue -o ${ISO_OUT} build/iso
 	rm -rf build/iso
 run-iso: build-iso
-	qemu-system-i386 -cdrom ${ISO_OUT}
+	qemu-system-i386 -cdrom ${ISO_OUT} -s -S &
+	gdb -x debug.gdb ${KERNEL_OUT}
 run-curses-iso: build-iso
 	qemu-system-i386 -display curses -cdrom ${ISO_OUT}
 clean:

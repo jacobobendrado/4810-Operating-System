@@ -16,12 +16,12 @@ unsigned char keyboard_map_shift[128] = {
   'A','S','D','F','G','H','J','K','L',':',
   // -------- 40 to 49 --------
   ' ','~',
-  '', // left Shift
+  ' ', // left Shift
   ' ','Z','X','C','V','B','N',
   // -------- 50 to 59 --------
   'M','<','>',
   '?', // slash, or numpad slash if preceded by keycode 224
-  '', // right Shift
+  ' ', // right Shift
   '*', // numpad asterisk
   ' ', // left Alt
   ' ', // Spacebar
