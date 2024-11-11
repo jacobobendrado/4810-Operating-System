@@ -6,7 +6,7 @@ LD = i686-elf-ld
 AS = i686-elf-as
 
 # Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -ggdb
+CFLAGS = -ffreestanding -O2 -Wall -Wextra
 LDFLAGS = -T src/linker.ld -nostdlib
 
 
@@ -31,8 +31,7 @@ build-iso: build
 	grub-mkrescue -o ${ISO_OUT} build/iso
 	rm -rf build/iso
 run-iso: build-iso
-	qemu-system-i386 -cdrom ${ISO_OUT} -s -S &
-	gdb -x debug.gdb ${KERNEL_OUT}
+	qemu-system-i386 -cdrom ${ISO_OUT}
 run-curses-iso: build-iso
 	qemu-system-i386 -display curses -cdrom ${ISO_OUT}
 clean:

@@ -1,9 +1,7 @@
 .include "src/kernel/isr.S"
-
 .global isr_stub_table
 isr_stub_table:
-    .space 128
-    .long 32 
+    .long isr_0 
     .long isr_stub_1
     .long isr_2
     .long isr_stub_3
