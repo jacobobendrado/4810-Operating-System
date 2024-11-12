@@ -45,17 +45,17 @@ If everything worked, the behavior of the system will be initially identical to 
 
 
 ## Helpful Resources and Further Reading
-[Intel 64 and IA-32 Architectures Software Developer’s Manual](https://cdrdv2-public.intel.com/825743/325462-sdm-vol-1-2abcd-3abcd-4.pdf) Vol. 3A, Chapter 3 and 4 in particular
-[Programming from the Ground Up - Johnathon Barlett](http://nongnu.askapache.com/pgubook/ProgrammingGroundUp-1-0-booksize.pdf#page163)
-[Physical Page Allocation - Kernel.org](https://www.kernel.org/doc/gorman/html/understand/understand009.html)
-[Memory Management Unit - OSDev](https://wiki.osdev.org/Memory_Management_Unit)
-[Paging - OSDev](https://wiki.osdev.org/Paging) 
-- [1.1] [Page Tables - OSDev](https://wiki.osdev.org/Page_Tables)
-- [1.2] [Page Frame Allocation - OSDev](https://wiki.osdev.org/Page_Frame_Allocation)
+- [Intel 64 and IA-32 Architectures Software Developer’s Manual](https://cdrdv2-public.intel.com/825743/325462-sdm-vol-1-2abcd-3abcd-4.pdf) Vol. 3A, Chapter 3 and 4 in particular
+- [Programming from the Ground Up - Johnathon Barlett](http://nongnu.askapache.com/pgubook/ProgrammingGroundUp-1-0-booksize.pdf#page163)
+- [Physical Page Allocation - Kernel.org](https://www.kernel.org/doc/gorman/html/understand/understand009.html)
+- [Memory Management Unit - OSDev](https://wiki.osdev.org/Memory_Management_Unit)
+- [Paging - OSDev](https://wiki.osdev.org/Paging) 
+    - [Page Tables - OSDev](https://wiki.osdev.org/Page_Tables)
+    - [Page Frame Allocation - OSDev](https://wiki.osdev.org/Page_Frame_Allocation)
 
 
 ## Future Improvements
 - Memory leak prevention
 - Use after free protection
 - Multiple small allocations from the same process housed in one larger block
-- Paging
+- Virtual Address Spaces/Paging
