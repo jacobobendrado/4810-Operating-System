@@ -22,6 +22,8 @@ Installation guides:
 ```bash
 # Clone the repository (if you haven't already)
 git clone https://github.com/jacobobendrado/4810-Operating-System.git
+# Enter the repository directory
+cd 4810-Operating-System
 # Switch to the kernel module branch
 git switch kernel_module
 # Navigate to the project directory
@@ -30,6 +32,9 @@ cd ShompOS
 make run
 ```
 If everything worked, you should see "Hello, World!" in QEMU!
+
+## Exiting QEMU
+Sometimes, it's tricky to try to get out of QEMU when it's running. If the X in the top right corner isn't working, try Ctrl+Alt+G to take control, then click that again. Alternatively, you can send the interrput signal, Ctrl+C, in the terminal where you ran `make run`.
 
 ## Key Files
 - `src/kernel/kernel.c` - Main kernel code
@@ -40,7 +45,7 @@ If everything worked, you should see "Hello, World!" in QEMU!
 - Screen output functionality
 - GRUB bootloader integration
 
-## Helpful Resources
+## Important Foundations
 - [OSDev Wiki - Bare Bones Tutorial](https://wiki.osdev.org/Bare_Bones)
 - Operating Systems basics
 - x86 assembly basics

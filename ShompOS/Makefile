@@ -41,7 +41,7 @@ iso: $(BUILD_DIR)/kernel.bin
 	cp $(SRC_DIR)/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO_DIR)/shompos.iso $(ISO_DIR)
 
-run: iso
+run: clean iso
 	qemu-system-i386 -cdrom $(ISO_DIR)/shompos.iso
 
 $(BUILD_DEBUG_DIR)/kernel.bin: $(KERNEL_OBJS)
@@ -61,7 +61,7 @@ iso_debug: $(BUILD_DEBUG_DIR)/kernel.bin
 	cp $(SRC_DIR)/grub.cfg $(ISO_DEBUG_DIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO_DEBUG_DIR)/shompos.iso $(ISO_DEBUG_DIR)
 
-run_debug: iso_debug
+run_debug: clean iso_debug
 	qemu-system-i386 -s -S -cdrom $(ISO_DEBUG_DIR)/shompos.iso &
 	gdb $(ISO_DEBUG_DIR)/boot/kernel.bin -x debug.gdb
 
