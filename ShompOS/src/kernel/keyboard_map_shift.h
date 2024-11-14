@@ -1,3 +1,7 @@
+// keyboard_map_shift.h
+// Map from shifted keyboard to ASCII
+// Cedarville University 2024-25 OSDev Team
+
 unsigned char keyboard_map_shift[128] = {
   // -------- 0 to 9 --------
   ' ',

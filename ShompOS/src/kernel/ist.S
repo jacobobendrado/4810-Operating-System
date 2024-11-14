@@ -1,3 +1,7 @@
+# ist.S
+# Table of Interrupt Service Routines
+# Cedarville University 2024-25 OSDev Team
+
 .include "src/kernel/isr.S"
 .global isr_stub_table
 isr_stub_table:

@@ -1,3 +1,7 @@
+# gdt.S
+# Global Descriptor table implementation
+# Cedarville University 2024-25 OSDev Team
+
 # GDT - Global Descriptor Table
 .section .data
 gdt_start:
