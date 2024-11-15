@@ -1,3 +1,7 @@
+// kernel.c
+// Core functionality for the kernel
+// Cedarville University 2024-25 OSDev Team
+
 /* Type definitions */
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

@@ -1,3 +1,6 @@
+# boot.S
+# Initial functions to boot and link to C code
+# Cedarville University 2024-25 OSDev Team
 
 .set ALIGN,    1<<0           
 .set MEMINFO,  1<<1            

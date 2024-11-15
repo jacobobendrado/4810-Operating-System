@@ -1,3 +1,7 @@
+# Makefile
+# Set up configurations of running program
+# Cedarville University 2024-25 OSDev Team
+
 PATH := $(HOME)/opt/cross/bin:$(PATH)
 
 # Compiler and linker
@@ -31,7 +35,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/kernel/%.c
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/kernel/%.s
+$(BUILD_DIR)/%.o: $(SRC_DIR)/kernel/%.S
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -51,7 +55,7 @@ $(BUILD_DEBUG_DIR)/%.o: $(SRC_DIR)/kernel/%.c
 	mkdir -p $(BUILD_DEBUG_DIR)
 	$(CC) $(CFLAGS_DEBUG) -c $< -o $@
 
-$(BUILD_DEBUG_DIR)/%.o: $(SRC_DIR)/kernel/%.s
+$(BUILD_DEBUG_DIR)/%.o: $(SRC_DIR)/kernel/%.S
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS_DEBUG) -c $< -o $@
 

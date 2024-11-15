@@ -1,3 +1,8 @@
+/* linker.ld
+** Loading file for OS
+** Cedarville University 2024-25 OSDev Team
+*/
+
 ENTRY(_start)
 
 SECTIONS
