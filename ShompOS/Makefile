@@ -1,3 +1,7 @@
+# Makefile
+# Set up configurations of running program
+# Cedarville University 2024-25 OSDev Team
+
 PATH := $(HOME)/opt/cross/bin:$(PATH)
 
 # tools

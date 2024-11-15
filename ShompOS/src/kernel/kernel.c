@@ -1,3 +1,7 @@
+// kernel.c
+// Core functionality for the kernel
+// Cedarville University 2024-25 OSDev Team
+
 // IDT_SIZE: Specific to x86 architecture
 #define IDT_SIZE 256
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
