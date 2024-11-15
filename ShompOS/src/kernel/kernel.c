@@ -1,8 +1,6 @@
 // kernel.c
 // Core functionality for the kernel
 // Cedarville University 2024-25 OSDev Team
-
-
 // IDT_SIZE: Specific to x86 architecture
 #define IDT_SIZE 256
 // EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
@@ -26,46 +24,10 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // ----- Includes -----
-#include "keyboard_map.h"
-#include "keyboard_map_shift.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-
-// ----- Assembly functions -----
-extern void load_gdt();
-extern void keyboard_handler();
-extern char ioport_in(uint16_t port);
-extern void ioport_out(uint16_t port, uint8_t data);
-extern void load_idt(uint32_t* idt_address);
-extern void enable_interrupts();
-extern void* isr_stub_table[];
-
-
-// ----- Function Prototypes ----- 
-void terminal_writestring(const char* data);
-
-
-// ----- Structs -----
-typedef struct _IDT_pointer {
-	uint16_t limit;
-	uint32_t base;
-} __attribute__((packed)) IDT_pointer;
-typedef struct _IDT_entry {
-	uint16_t offset_lowerbits; 
-	uint16_t selector; 
-	uint8_t zero; 
-	uint8_t type_attr; 
-	uint16_t offset_upperbits; 
-} __attribute__((packed)) IDT_entry;
-typedef struct _KEY_state {
-	uint8_t unused : 4;
-    uint8_t caps: 1;
-	uint8_t alt : 1;
-	uint8_t ctrl : 1;
-	uint8_t shift : 1;
-} KEY_state;
+#include <kernel/kernel.h>
+#include <kernel/boot.h>
+#include <IO/keyboard_map.h>
+#include <IO/keyboard_map_shift.h>
 
 
 // ----- Global variables -----
