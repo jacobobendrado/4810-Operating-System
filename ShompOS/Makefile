@@ -23,22 +23,22 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/heap.o \
 				$(OBJ_DIR)/fake_libc.o
 
-.PHONY: all build run run-curses clean
+.PHONY: all build run run-curses debug debug-curses clean
 
-all: $(BUILD_DIR)/kernel.bin
+all: $(BUILD_DIR)/shompOS.bin
 
-$(BUILD_DIR)/kernel.bin: $(KERNEL_OBJS)
+$(BUILD_DIR)/shompOS.bin: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.s
+$(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.S
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@\
 
-build: $(BUILD_DIR)/kernel.bin
+build: $(BUILD_DIR)/shompOS.bin
 	mkdir -p build/iso/boot/grub
 	cp src/grub.cfg build/iso/boot/grub
 	cp ${KERNEL_OUT} build/iso/boot/grub

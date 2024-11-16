@@ -1,7 +1,9 @@
 #pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 #include <fake_libc/fake_libc.h>
+
 
 #define HEAP_LOWER_BOUND 0x4000000
 #define DEFAULT_HEAP_SCALE 0x0A

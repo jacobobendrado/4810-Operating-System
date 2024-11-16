@@ -1,5 +1,5 @@
-#include <stdbool.h>
 #include <memory/heap.h>
+#include <stdbool.h>
 #include <kernel/kernel.h>
 #include <fake_libc/fake_libc.h>
 

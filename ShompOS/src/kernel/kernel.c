@@ -21,17 +21,16 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // ----- Includes -----
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <kernel/kernel.h>
+#include <kernel/boot.h>
+#include <fake_libc/fake_libc.h>
 #include <IO/keyboard_map.h>
 #include <memory/heap.h>
-#include <fake_libc/fake_libc.h>
 
 
 // ----- Global variables -----
-IDT_entry IDT[IDT_SIZE]; // This is our entire IDT. Room for 256 interrupts
+// This is our entire IDT. Room for 256 interrupts
+IDT_entry IDT[IDT_SIZE]; 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
