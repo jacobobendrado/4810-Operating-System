@@ -21,10 +21,8 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // ----- Includes -----
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <kernel/kernel.h>
+#include <kernel/boot.h>
 #include <IO/keyboard_map.h>
 #include <memory/heap.h>
 #include <fake_libc/fake_libc.h>
