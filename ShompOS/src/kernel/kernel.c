@@ -105,6 +105,6 @@ void kernel_main(void) {
     terminal_initialize();
 
     terminal_writestring("Hello, kernel World!\n");
-    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     terminal_writestring("Welcome to ShompOS!\n");
 }

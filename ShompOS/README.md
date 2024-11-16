@@ -38,6 +38,7 @@ Sometimes, it's tricky to try to get out of QEMU when it's running. If the X in 
 
 ## Key Files
 - `src/kernel/kernel.c` - Main kernel code
+- `src/kernel/boot.h` - OS entrypoint and multiboot header
 - `Makefile` - Build configuration
 
 ## Implementation Details
