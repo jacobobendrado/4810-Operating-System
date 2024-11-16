@@ -23,38 +23,14 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // ----- Includes -----
-#include "keyboard_map.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-
-// ----- Assembly functions -----
-extern void load_gdt();
-extern void keyboard_handler();
-extern void int_zero_handler();
-extern char ioport_in(uint16_t port);
-extern void ioport_out(uint16_t port, uint8_t data);
-extern void load_idt(uint32_t* idt_address);
-extern void enable_interrupts();
-
-// ----- Structs -----
-struct IDT_pointer {
-	uint16_t limit;
-	uint32_t base;
-} __attribute__((packed));
-struct IDT_entry {
-	uint16_t offset_lowerbits; 
-	uint16_t selector; 
-	uint8_t zero; 
-	uint8_t type_attr; 
-	uint16_t offset_upperbits; 
-} __attribute__((packed));
-
+#include <kernel/kernel.h>
+#include <kernel/boot.h>
+#include <IO/keyboard_map.h>
 
 
 // ----- Global variables -----
-struct IDT_entry IDT[IDT_SIZE]; // This is our entire IDT. Room for 256 interrupts
+// This is our entire IDT. Room for 256 interrupts
+IDT_entry IDT[IDT_SIZE]; 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
@@ -176,10 +152,10 @@ void init_idt() {
 	unsigned int offset;
 
 	offset = (unsigned int)int_zero_handler;
-	idt_set_descriptor(0x00, offset,  IDT_TRAP_GATE_32BIT);
+	idt_set_descriptor(0x00, (void*)offset,  IDT_TRAP_GATE_32BIT);
 
 	offset = (unsigned int)keyboard_handler;
-	idt_set_descriptor(0x21, offset,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
@@ -222,8 +198,8 @@ void init_idt() {
 	// create a pointer to our idt, this is 
 	// required to be the format of limit (size
 	// in bytes - 1) and base (starting address)
-	struct IDT_pointer idt_ptr;
-	idt_ptr.limit = (sizeof(struct IDT_entry) *IDT_SIZE) - 1;
+	IDT_pointer idt_ptr;
+	idt_ptr.limit = (sizeof(IDT_entry) *IDT_SIZE) - 1;
 	idt_ptr.base = (uint32_t) &IDT;
 
 	// pass address to load_idt (defined in boot.S)

@@ -30,10 +30,10 @@ make run
 If everything worked, you should be able to see your keyboard inputs displayed in the screen. To try out the Divide by Zero Exception, press the `0` key.
 
 ## Key Files
-- `kernel/isr.S` - Handles hardware interrupts and exceptions
-- `kernel/keyboard_map.h` - Defines keyboard scan code mappings
-- `kernel/kernel.c` - Where the handling and printing occurs
-- `kernel/boot.S` - Where we get the data from the hardware
+- `src/kernel/kernel.c` - Where the handling and printing occurs
+- `src/kernel/boot.S` - Where we get the data from the hardware
+- `src/kernel/isr.S` - Handles hardware interrupts and exceptions
+- `inc/IO/keyboard_map.h` - Defines keyboard scan code mappings
 
 ## Implementation Details
 - Keyboard interrupt handling
