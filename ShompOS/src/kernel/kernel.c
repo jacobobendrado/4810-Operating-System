@@ -327,6 +327,11 @@ void handle_div_by_zero() {
 	terminal_writestring("Div by zero!");
 }
 
+void handle_OOM() {
+	// should be changed later to handle and move brk
+	terminal_writestring("Out of memory!");
+}
+
 
 // ----- Entry point -----
 void kernel_main() {
