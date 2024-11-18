@@ -40,6 +40,7 @@ uint16_t* terminal_buffer;
 KEY_state special_key_state = {0,0,0,0};
 
 // ----- debugging/example variables -----
+bool memory_mode = false;
 void* ptr[10];
 
 // ----- Bare Bones -----
@@ -148,6 +149,8 @@ void terminal_clear() {
 			terminal_putentryat(' ', terminal_color, x, y);
 		}	
 	}
+	terminal_column = 0;
+	terminal_row = 0;
 }
 
 void exception_handler() {
@@ -246,10 +249,19 @@ void handle_keyboard_interrupt() {
 		// 1 if the key has just been released.  
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
 		
+		// handle right alt/ctrl
+		if ((uint8_t)keycode == 224) {
+			keycode = ioport_in(KEYBOARD_DATA_PORT);
+		}
+
 		// set shift flag based on keycode MSB 
 		if (keycode == 42 || (uint8_t)keycode == 170 ||
 			keycode == 54 || (uint8_t)keycode == 182){
 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
+		}
+
+		else if (keycode == 29 || (uint8_t)keycode == 157){
+			special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
 		} 
 		
 		// ignore key releases
@@ -266,55 +278,61 @@ void handle_keyboard_interrupt() {
 		}
 
 
+		// ----- HEAP DEMONSTATION -----
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'm'){
+			memory_mode = !memory_mode;
+			terminal_clear();
+			terminal_writestring(memory_mode ? "entering memory management mode...\n" \
+											 : "exiting memory management mode...\n");
+		}
 
-		else if (keyboard_map[(uint8_t) keycode] == 'a') {
-			free(&ptr[1]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'q') {
-			free(&ptr[2]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'w') {
-			free(&ptr[3]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'e') {
-			free(&ptr[4]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'r') {
-			free(&ptr[5]);
-		} else if (keyboard_map[(uint8_t) keycode] == 't') {
-			free(&ptr[6]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'y') {
-			free(&ptr[7]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'u') {
-			free(&ptr[8]);
-		} else if (keyboard_map[(uint8_t) keycode] == 'i') {
-			free(&ptr[9]);
-		} 
+		else if (memory_mode) {
+			if (keyboard_map[(uint8_t) keycode] == 'a') {
+				free(&ptr[1]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'q') {
+				free(&ptr[2]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'w') {
+				free(&ptr[3]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'e') {
+				free(&ptr[4]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'r') {
+				free(&ptr[5]);
+			} else if (keyboard_map[(uint8_t) keycode] == 't') {
+				free(&ptr[6]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'y') {
+				free(&ptr[7]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'u') {
+				free(&ptr[8]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'i') {
+				free(&ptr[9]);
+			} 
 
-		// simple allocation routine
-		else if (keyboard_map[(uint8_t) keycode] == '1') {
-			ptr[1] = allocate(1);
-		} else if (keyboard_map[(uint8_t) keycode] == '2') {
-			ptr[2] = allocate(8);
-		} else if (keyboard_map[(uint8_t) keycode] == '3') {
-			ptr[3] = allocate(24);
-		} else if (keyboard_map[(uint8_t) keycode] == '4') {
-			ptr[4] = allocate(1);
-		} else if (keyboard_map[(uint8_t) keycode] == '5') {
-			ptr[5] = allocate(8);
-		} else if (keyboard_map[(uint8_t) keycode] == '6') {
-			ptr[6] = allocate(24);
-		} else if (keyboard_map[(uint8_t) keycode] == '7') {
-			ptr[7] = allocate(56);
-		} else if (keyboard_map[(uint8_t) keycode] == '8') {
-			ptr[8] = allocate(120);
-		} else if (keyboard_map[(uint8_t) keycode] == '9') {
-			ptr[9] = allocate(248);
-		} 
+			// simple allocation routine
+			else if (keyboard_map[(uint8_t) keycode] == '1') {
+				ptr[1] = allocate(1);
+			} else if (keyboard_map[(uint8_t) keycode] == '2') {
+				ptr[2] = allocate(8);
+			} else if (keyboard_map[(uint8_t) keycode] == '3') {
+				ptr[3] = allocate(24);
+			} else if (keyboard_map[(uint8_t) keycode] == '4') {
+				ptr[4] = allocate(1);
+			} else if (keyboard_map[(uint8_t) keycode] == '5') {
+				ptr[5] = allocate(8);
+			} else if (keyboard_map[(uint8_t) keycode] == '6') {
+				ptr[6] = allocate(24);
+			} else if (keyboard_map[(uint8_t) keycode] == '7') {
+				ptr[7] = allocate(56);
+			} else if (keyboard_map[(uint8_t) keycode] == '8') {
+				ptr[8] = allocate(120);
+			} else if (keyboard_map[(uint8_t) keycode] == '9') {
+				ptr[9] = allocate(248);
+			} 
 
-		
-		else if (keyboard_map[(uint8_t) keycode] == 'o') {
-			terminal_advance_row();
-		} 
-		else if (keyboard_map[(uint8_t) keycode] == 'p') {
-			print_free_counts();
-		} 
+			else if (keyboard_map[(uint8_t) keycode] == 'p') {
+				print_free_counts();
+			} 
+		}
+		// ----- END HEAP DEMONSTATION -----		
 		
 		
 		// print character with SHFT modification
