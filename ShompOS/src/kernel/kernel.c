@@ -41,6 +41,10 @@ KEY_state special_key_state = {0,0,0,0};
 
 // ----- debugging/example variables -----
 bool memory_mode = false;
+bool input_mode = false;
+uint32_t input_len = 0;
+char* input_ptr = NULL;
+uint8_t alloc_size = 0;
 void* ptr[10];
 
 // ----- Bare Bones -----
@@ -285,6 +289,52 @@ void handle_keyboard_interrupt() {
 			terminal_writestring(memory_mode ? "entering memory management mode...\n" \
 											 : "exiting memory management mode...\n");
 		}
+
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'c'){
+			input_mode = !input_mode;
+			if (input_mode) {
+				for (uint32_t i = 0; i < input_len; i++){
+					input_ptr[i] = (char)0;
+				}
+				input_len = 0;
+			}
+			terminal_clear();
+			terminal_writestring(input_mode ? "please enter a string: " \
+											 : "exiting input mode...\n");
+		}
+
+		else if (input_mode){
+			// allocate memory
+			if (input_len >= alloc_size) {
+				
+				// copy old string
+				if (input_ptr != NULL) {
+					char* temp = allocate(input_len+1);
+					for (uint32_t i = 0; i < input_len; i++){
+						temp[i] = input_ptr[i];
+					}
+					free((void**)&input_ptr);
+					input_ptr = temp;
+				} else {
+					input_ptr = allocate(1);
+				}
+				
+				// dont look im an ugly debug bodge
+				alloc_size = input_len < 7 ? 7 :\
+							 input_len < 23 ? 23 :\
+							 input_len < 55 ? 55 :\
+							 input_len < 119 ? 119 :\
+							 input_len < 247 ? 247 : 503;
+			}
+
+			char c = keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32);
+			terminal_putchar(c);
+			input_ptr[input_len] = c;
+			input_len++;
+		}
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
+				terminal_writestring(input_ptr);
+		} 
 
 		else if (memory_mode) {
 			if (keyboard_map[(uint8_t) keycode] == 'a') {

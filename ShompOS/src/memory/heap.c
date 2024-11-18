@@ -12,7 +12,7 @@ list_header free_list[MAX_BLOCK_SCALE+1];
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
 // returns: next power of 2, uint8_t
-static uint8_t size_to_scale(uint32_t size) {
+uint8_t size_to_scale(uint32_t size) {
     // add the size of the required header to the request.
     size += sizeof(block_header);
     // scale = size rounded up to the nearest power of 2.
@@ -230,20 +230,9 @@ void free(void** data){
     if (!data || !*data) return;
     block_header* block = ((block_header*)*data)-1;
 	
-	// set free bit coalesce block
 	block = __blkmngr_coalesce_block(block);
-	block->is_free = 1;
+    __blkmngr_add_to_free_list(block);
 
-	// add to free list
-	if (is_end_of_list(&free_list[block->scale])) {
-		block->list.next = (list_header*)block;
-    } else {
-        free_list[block->scale].next->prev = (list_header*)block;
-        block->list.next = free_list[block->scale].next;
-    }
-    free_list[block->scale].next = (list_header*)block;
-    block->list.prev = &free_list[block->scale];
-    
     // clear pointer
     *data = NULL;
 }
