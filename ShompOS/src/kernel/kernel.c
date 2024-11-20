@@ -243,18 +243,38 @@ void handle_keyboard_interrupt() {
 		// value. bit 7 is 0 if the key has just been pressed,
 		// 1 if the key has just been released.  
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
+
+		// if E0, the next byte is the keycode. May want to set a flag for this
+		if((uint8_t)keycode == 0xE0){
+			keycode = ioport_in(KEYBOARD_DATA_PORT);
+		}
 		
 		// set shift flag based on keycode MSB 
-		if (keycode == 42 || (uint8_t)keycode == 170 ||
-			keycode == 54 || (uint8_t)keycode == 182){
+		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
+			keycode == 0x36 || (uint8_t)keycode == 0xB6){
 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
 		}
 
+		// set alt flag, both left and right alt have same keycode
+		// but right alt is prepended with E0
+		// BUG: Pressing both alts and releasing only one will clear the flag
+		else if (keycode == 0x38 || (uint8_t)keycode == 0xB8){
+			special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
+		}
+
+		// set ctrl flag, both left and right ctrl have same keycode
+		// but right ctrl is prepended with E0
+		// BUG: Pressing both ctrls and releasing only one will clear the flag
+		else if (keycode == 0x1D || (uint8_t)keycode == 0x9D){
+			special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
+		}
+
+		//set caps flag
 		else if(keycode == 0x3A){
             		special_key_state.caps = 1 - special_key_state.caps;
-        	}
+        }
 
-		// ignore key releases
+		// ignore other key releases
 		else if ((uint8_t)keycode > 127) return;
 
 		// execute div by 0 exception on "0" press
