@@ -19,10 +19,12 @@
 .section .text
 .include "src/kernel/gdt.S"
 .include "src/kernel/ist.S"
+.include "src/kernel/syscall_table.S"
 # these functions will be called from kernel.c
 .global start
 .global load_gdt
 .global load_idt
+.global syscall_handler
 .global keyboard_handler
 .global ioport_in
 .global ioport_out
@@ -52,6 +54,13 @@ load_idt:
 enable_interrupts:
     sti
     ret
+
+# handle syscalls
+syscall_handler:
+    pushal
+    sall $2, %eax
+    addl sys_table, %eax
+    call *%eax
 
 # pushes all registers before calling C 
 # function. youtube man said to.

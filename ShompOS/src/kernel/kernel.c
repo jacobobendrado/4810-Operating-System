@@ -172,6 +172,9 @@ void init_idt() {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
+	offset = (unsigned int)syscall_handler;
+	idt_set_descriptor(0x80, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
+
 	offset = (unsigned int)keyboard_handler;
 	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
