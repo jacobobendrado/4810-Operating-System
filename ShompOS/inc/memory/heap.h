@@ -6,7 +6,6 @@
 
 
 #define HEAP_LOWER_BOUND 0x4000000
-#define DEFAULT_HEAP_SCALE 0x0A
 #define MAX_BLOCK_SCALE 0x0A 
 #define MIN_BLOCK_SCALE 0x04
 
@@ -24,4 +23,8 @@ typedef struct _block_header {
 void init_heap();
 void* allocate(size_t size);
 void free(void** block_ptr);
+int8_t brk(void* addr);
+int8_t sbrk(int32_t inc);
+
+// ----- FOR DEBUGGING ------
 void print_free_counts();

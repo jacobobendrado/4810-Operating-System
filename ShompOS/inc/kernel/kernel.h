@@ -26,4 +26,3 @@ typedef struct _KEY_state {
 
 void terminal_writestring(const char* data);
 void terminal_clear();
-void handle_OOM();

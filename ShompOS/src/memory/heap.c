@@ -7,7 +7,11 @@
 // each of the valid scales. 
 // slightly non-optimal in terms of memory usage. entries 0..3 remain unused so
 // free_list can be indexed with by scale.
-list_header free_list[MAX_BLOCK_SCALE+1];
+static list_header free_list[MAX_BLOCK_SCALE+1];
+
+// the limit of our heap. adjusted through brk() and sbrk().
+// points to the first byte AFTER allocatable space.
+static void* current_brk = NULL;
 
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
@@ -186,17 +190,16 @@ static block_header* __blkmngr_coalesce_block(block_header* block) {
 // pupose: constructs the initial state of the heap: a single, contiguous block
 // heap_addr: a pointer the LSB of the heap to initialize. 
 void init_heap(void* heap_addr) {
+    current_brk = heap_addr;
+
     // populate free_list such that each entry points to itself.
     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
         free_list[i].prev = &free_list[i];
         free_list[i].next = &free_list[i];
     }
 
-    // by default, the heap will be a single, massive block.
-    block_header* big_block = (block_header*)heap_addr;
-    big_block->scale = DEFAULT_HEAP_SCALE;
-    __blkmngr_add_to_free_list(big_block);
-
+    // by default, the heap will be a single, max scale block.
+    sbrk(1);
 }
 
 // purpose: allocates a section of memory dynamically
@@ -204,19 +207,24 @@ void init_heap(void* heap_addr) {
 // returns: a pointer to the first free byte
 void* allocate(size_t request_size) {
     // reject invalid reqests
-    if (!request_size) return NULL;
+    if (request_size > (1<<MAX_BLOCK_SCALE)-sizeof(block_header) \
+       || !request_size) return NULL;
 
     uint32_t request_scale = max(size_to_scale(request_size), MIN_BLOCK_SCALE);
     block_header* block = __blkmngr_find_fit(request_scale);
 
     if (block) {
+        // split block if too large
         while (block->scale > request_scale) {
             __blkmngr_split_block(block);
         }
     } else {
-        handle_OOM();
-        return NULL;
+        // if block cannot be allocated, increase heap size and retry
+        int8_t ret = sbrk(1);
+        if (ret == -1) return NULL;
+        block = __blkmngr_find_fit(request_scale);
     }
+
     // return the first free byte after the block_header. 
     return block+1;
 }
@@ -230,15 +238,101 @@ void free(void** data){
     if (!data || !*data) return;
     block_header* block = ((block_header*)*data)-1;
 	
+    // merge and free block
 	block = __blkmngr_coalesce_block(block);
     __blkmngr_add_to_free_list(block);
+
+    // if freed block is max scale and the last block on the heap, call sbrk
+    // to shrink heap.
+    void* block_end = (void*)block+(1<<MAX_BLOCK_SCALE);
+    if (block->scale == MAX_BLOCK_SCALE && current_brk == block_end) sbrk(-1);
 
     // clear pointer
     *data = NULL;
 }
 
+// purpose: moves the current_brk according to the provided address. 
+//          if addr > current_brk, (a request to grow the heap) then new max
+//          scale blocks will be created until the address is within the heap.
+//          if addr < current_brk, (a request to shrink the heap) then blocks
+//          will be destroyed until the address is outside the heap.
+// addr: the provided address to move the brk.
+// returns: 0 on success, -1 on failure
+int8_t brk(void* addr) {
+    if (addr > current_brk){
+        // repeatedly grow until requested addr is reached
+        while (addr > current_brk) {
+            // TODO: verify the space can be allocated
+            
+            // create new, max sized block
+            block_header* big_block = (block_header*)current_brk;
+            big_block->scale = MAX_BLOCK_SCALE;
+            __blkmngr_add_to_free_list(big_block);
+
+            // adjust current_break to first free byte afterward
+            current_brk += (1<<MAX_BLOCK_SCALE);
+        }
+        return 0;
+    } else {
+        // repeatedly shrink heap if last block is max scale and free until
+        // requested addr is reached
+        while (addr < current_brk) {
+            block_header* block = current_brk - (1<<MAX_BLOCK_SCALE);
+
+            // exit with failure if an allocation is encountered
+            if (block->scale != MAX_BLOCK_SCALE || !block->is_free) return -1;
+            
+            // remove empty block and move brk
+            __blkmngr_remove_from_free_list(block);
+            current_brk -= (1<<MAX_BLOCK_SCALE);
+        }
+        return 0;
+    }
+}
+
+// purpose: adjusts current_brk by a relative amount of max scale blocks up or down.
+// inc: amount to increment up or down
+// returns: 0 on success, -1 on failure
+int8_t sbrk(int32_t inc) {
+    if (!inc) return -1;
+    else return brk(current_brk + (inc<<MAX_BLOCK_SCALE));
+}
+
 
 // ----- FOR DEBUGGING ------
+// stole from Claude
+char* addr_to_string(char* buffer, uintptr_t addr) {
+    const char hex_digits[] = "0123456789abcdef";
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    
+    // Handle 0 specially
+    if (addr == 0) {
+        buffer[2] = '0';
+        buffer[3] = '\0';
+        return buffer;
+    }
+    
+    // Find first significant digit position
+    int digits = 0;
+    uintptr_t temp = addr;
+    while (temp) {
+        digits++;
+        temp >>= 4;
+    }
+    
+    // Write digits from most to least significant
+    buffer[digits + 2] = '\0';  // +2 for "0x" prefix
+    int pos = digits + 1;       // Position to write next digit
+    
+    while (addr) {
+        buffer[pos--] = hex_digits[addr & 0xF];
+        addr >>= 4;
+    }
+    
+    return buffer;
+}
+
 void print_free_counts(){
     terminal_writestring("free_block counts:\n");
     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
@@ -256,4 +350,10 @@ void print_free_counts(){
         terminal_writestring(c2);
         terminal_writestring("\n");  
     } 
+    char buf[18];
+    addr_to_string(buf, (uintptr_t)current_brk);
+    terminal_writestring("brk at ");
+    terminal_writestring(buf);
+    terminal_writestring("\n");  
 }
+
