@@ -1,3 +1,7 @@
+# isr.S
+# Interrupt Service Routine implementations
+# Cedarville University 2024-25 OSDev Team
+
 # Tutorial built from https://wiki.osdev.org/Interrupts_Tutorial
 
 .macro isr_err_stub num
@@ -12,76 +16,74 @@ isr_stub_\num:
     iret
 .endm
 
-.extern exception_handler
-isr_no_err_stub 0
-isr_no_err_stub 1
-isr_no_err_stub 2
-isr_no_err_stub 3
-isr_no_err_stub 4
-isr_no_err_stub 5
-isr_no_err_stub 6
-isr_no_err_stub 7
-isr_err_stub    8
-isr_no_err_stub 9
-isr_err_stub    10
-isr_err_stub    11
-isr_err_stub    12
-isr_err_stub    13
-isr_err_stub    14
-isr_no_err_stub 15
-isr_no_err_stub 16
-isr_err_stub    17
-isr_no_err_stub 18
-isr_no_err_stub 19
-isr_no_err_stub 20
-isr_no_err_stub 21
-isr_no_err_stub 22
-isr_no_err_stub 23
-isr_no_err_stub 24
-isr_no_err_stub 25
-isr_no_err_stub 26
-isr_no_err_stub 27
-isr_no_err_stub 28
-isr_no_err_stub 29
-isr_err_stub    30
-isr_no_err_stub 31
-
-.macro add_to_table n
-.long isr_stub_\n
+.macro unrecoverable_error
+    call kill_process
+    iret
 .endm
 
-.global isr_stub_table
-isr_stub_table:
-    .space 128
-    .long isr_stub_0
-    .long isr_stub_1
-    .long isr_stub_2
-    .long isr_stub_3
-    .long isr_stub_4
-    .long isr_stub_5
-    .long isr_stub_6
-    .long isr_stub_7
-    .long isr_stub_8
-    .long isr_stub_9
-    .long isr_stub_10
-    .long isr_stub_11
-    .long isr_stub_12
-    .long isr_stub_13
-    .long isr_stub_14
-    .long isr_stub_15
-    .long isr_stub_16
-    .long isr_stub_17
-    .long isr_stub_18
-    .long isr_stub_19
-    .long isr_stub_20
-    .long isr_stub_21
-    .long isr_stub_22
-    .long isr_stub_23
-    .long isr_stub_24
-    .long isr_stub_25
-    .long isr_stub_26
-    .long isr_stub_27
-    .long isr_stub_28
-    .long isr_stub_29
-    .long isr_stub_30
-    .long isr_stub_31
+.extern exception_handler
+.extern kill_process
+isr_no_err_stub 1  # This could be useful (debug)
+isr_no_err_stub 3  # This could be useful (breakpoint)
+isr_no_err_stub 6  # Probably not
+isr_no_err_stub 7  # Probably not
+isr_no_err_stub 9  # MIA
+isr_err_stub    13 # Probably not
+isr_err_stub    14 # Yes after memory is implemented
+isr_no_err_stub 15 # Reserved
+isr_err_stub    17 # Probably not
+isr_no_err_stub 18 # Probably not
+isr_no_err_stub 20 # Probably not
+isr_no_err_stub 21 # Probably not
+isr_no_err_stub 22 # Reserved
+isr_no_err_stub 23 # Reserved
+isr_no_err_stub 24 # Reserved
+isr_no_err_stub 25 # Reserved
+isr_no_err_stub 26 # Reserved
+isr_no_err_stub 27 # Reserved
+isr_no_err_stub 28 # Probably not
+isr_no_err_stub 29 # Probably not
+isr_err_stub    30 # Probably not
+isr_no_err_stub 31 # Reserved
+
+.extern handle_div_by_zero
+isr_0:
+    pushal
+    cld
+    call handle_div_by_zero
+
+    # Increment the instruction pointer for returning
+    # to skip the div instruction.
+    # Should be changed later to kill the process
+    movl 0x20(%esp), %edx
+    addl $2, %edx
+    movl %edx, 0x20(%esp)
+    popal
+    iret
+
+isr_2:
+    unrecoverable_error
+
+isr_4:
+    unrecoverable_error
+
+isr_5:
+    unrecoverable_error
+
+isr_8:
+    unrecoverable_error
+
+isr_10:
+    unrecoverable_error
+
+isr_11:
+    unrecoverable_error
+
+isr_12:
+    unrecoverable_error
+
+isr_16:
+    unrecoverable_error
+
+isr_19:
+    unrecoverable_error

@@ -18,7 +18,8 @@ typedef struct _IDT_entry {
 } __attribute__((packed)) IDT_entry;
 
 typedef struct _KEY_state {
-	uint8_t unused : 5;
+	uint8_t unused : 4;
+  uint8_t caps: 1;
 	uint8_t alt : 1;
 	uint8_t ctrl : 1;
 	uint8_t shift : 1;

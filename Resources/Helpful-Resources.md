@@ -35,3 +35,6 @@
 - Task runner for targets described in Makefile. Mostly used to control the compilation of an executable from source code.
 - To get a jumpstart on using `make`, check out the tldr documentation [here](https://tldr.inbrowser.app/pages/common/make)
 
+#### gdb
+- The GNU debugger. We can use it with QEMU to debug a kernel.
+- To use `gdb` with QEMU, check out the documentation [here](https://qemu-project.gitlab.io/qemu/system/gdb.html)

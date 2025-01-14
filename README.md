@@ -3,6 +3,7 @@
 ## Our Goal
 - Learn as much as possible about operating systems, low-level programming, and computer hardware
 - Build an operating system in C using the x86 architecture
+- Structure the OS in independently runnable sections aimed as an educational resource
 
 ## Platform
 - Language: C
@@ -20,5 +21,6 @@ In the ShompOS/, run `make run` to build the OS and run it.
 Other helpful commands:
 - `make clean`: Removes all build artifacts
 - `make`: Builds the project
+- `make run-iso`: Creates and runs iso
 
 Under development, more to be added.

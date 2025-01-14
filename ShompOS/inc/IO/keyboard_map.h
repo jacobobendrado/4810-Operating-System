@@ -1,3 +1,7 @@
+// keyboard_map.h
+// Map from keyboard to ASCII
+// Cedarville University 2024-25 OSDev Team
+
 unsigned char keyboard_map[128] = {
   // -------- 0 to 9 --------
   ' ',

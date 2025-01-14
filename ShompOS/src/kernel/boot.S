@@ -1,3 +1,7 @@
+# boot.S
+# Initial functions to boot and link to C code
+# Cedarville University 2024-25 OSDev Team
+
 # multiboot magic. taken from OSDev.wiki
 .set ALIGN,    1<<0           
 .set MEMINFO,  1<<1            
@@ -13,14 +17,17 @@
 .long CHECKSUM
 
 .section .text
+
 .include "src/kernel/gdt.S"
-.include "src/kernel/isr.S"
+.include "src/kernel/ist.S"
+.include "src/kernel/syscall_table.S"
+
 # these functions will be called from kernel.c
 .global start
 .global load_gdt
 .global load_idt
+.global syscall_handler
 .global keyboard_handler
-.global int_zero_handler
 .global ioport_in
 .global ioport_out
 .global enable_interrupts
@@ -29,7 +36,6 @@
 # be called in assembly
 .extern kernel_main            
 .extern handle_keyboard_interrupt
-.extern handle_div_by_zero
 
 # loads the gdt_descriptor found in gdt.s
 load_gdt:
@@ -51,6 +57,13 @@ enable_interrupts:
     sti
     ret
 
+# handle syscalls
+syscall_handler:
+    pushal
+    sall $2, %eax
+    addl sys_table, %eax
+    call *%eax
+
 # pushes all registers before calling C 
 # function. youtube man said to.
 keyboard_handler:
@@ -59,20 +72,6 @@ keyboard_handler:
     call handle_keyboard_interrupt
     popal
     iret
-
-int_zero_handler:
-    pushal
-    cld
-    call handle_div_by_zero
-
-    # Increment the instruction pointer for returning
-    # to skip the div instruction.
-    # Should be changed later to kill the process
-    movl 0x20(%esp), %edx
-    addl $2, %edx
-    movl %edx, 0x20(%esp)
-    popal
-    iret 
 
 # reads a byte from an IO port (address
 # stored in dx) into al 
@@ -102,6 +101,7 @@ start:
     movw %ax, %ss
     movl $stack_top, %esp  
     cli                      
+
     movl $stack_top, %esp
     call kernel_main
     hlt
@@ -110,4 +110,5 @@ start:
 .align 16
 stack_bottom:
 .skip 16384 # 16 KiB
+
 stack_top:

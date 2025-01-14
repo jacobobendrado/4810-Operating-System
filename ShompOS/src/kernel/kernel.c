@@ -1,3 +1,6 @@
+// kernel.c
+// Core functionality for the kernel
+// Cedarville University 2024-25 OSDev Team
 // IDT_SIZE: Specific to x86 architecture
 #define IDT_SIZE 256
 // EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
@@ -23,9 +26,10 @@
 // ----- Includes -----
 #include <kernel/kernel.h>
 #include <kernel/boot.h>
-#include <fake_libc/fake_libc.h>
-#include <IO/keyboard_map.h>
+#include <fake_libc/fake_libc.h> // Is this still relevant?
 #include <memory/heap.h>
+#include <IO/keyboard_map.h>
+#include <IO/keyboard_map_shift.h>
 
 
 // ----- Global variables -----
@@ -37,7 +41,8 @@ size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
-KEY_state special_key_state = {0,0,0,0};
+KEY_state special_key_state = {0,0,0,0,0};
+uint8_t control_key_flags = 0;
 
 // ----- debugging/example variables -----
 bool memory_mode = false;
@@ -146,6 +151,9 @@ void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
 }
+void kill_process() {
+	__asm__ volatile ("cli; hlt");
+}
 
 void terminal_clear() {
 	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
@@ -159,7 +167,7 @@ void terminal_clear() {
 
 void exception_handler() {
 	terminal_writestring("Exception!");
-	__asm__ volatile ("cli; hlt");
+	kill_process();
 }
 
 void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
@@ -174,12 +182,12 @@ void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 void init_idt() {
 	unsigned int offset;
 
-	offset = (unsigned int)int_zero_handler;
-	idt_set_descriptor(0x00, (void*)offset,  IDT_TRAP_GATE_32BIT);
-
-	for (int i = 1; i < EXCEPTIONS_SIZE; i++) {
+	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
+
+	offset = (unsigned int)syscall_handler;
+	idt_set_descriptor(0x80, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
 	offset = (unsigned int)keyboard_handler;
 	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
@@ -252,6 +260,11 @@ void handle_keyboard_interrupt() {
 		// value. bit 7 is 0 if the key has just been pressed,
 		// 1 if the key has just been released.  
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
+
+		// if E0, the next byte is the keycode. May want to set a flag for this
+		if((uint8_t)keycode == 0xE0){
+			keycode = ioport_in(KEYBOARD_DATA_PORT);
+		}
 		
 		// handle right alt/ctrl
 		if ((uint8_t)keycode == 224) {
@@ -259,16 +272,31 @@ void handle_keyboard_interrupt() {
 		}
 
 		// set shift flag based on keycode MSB 
-		if (keycode == 42 || (uint8_t)keycode == 170 ||
-			keycode == 54 || (uint8_t)keycode == 182){
+		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
+			keycode == 0x36 || (uint8_t)keycode == 0xB6){
 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
 		}
 
-		else if (keycode == 29 || (uint8_t)keycode == 157){
+		// set alt flag, both left and right alt have same keycode
+		// but right alt is prepended with E0
+		// BUG: Pressing both alts and releasing only one will clear the flag
+		else if (keycode == 0x38 || (uint8_t)keycode == 0xB8){
+			special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
+		}
+
+		// set ctrl flag, both left and right ctrl have same keycode
+		// but right ctrl is prepended with E0
+		// BUG: Pressing both ctrls and releasing only one will clear the flag
+		else if (keycode == 0x1D || (uint8_t)keycode == 0x9D){
 			special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
-		} 
-		
-		// ignore key releases
+		}
+
+		//set caps flag
+		else if(keycode == 0x3A){
+            		special_key_state.caps = 1 - special_key_state.caps;
+        }
+
+		// ignore other key releases
 		else if ((uint8_t)keycode > 127) return;
 
 		// execute div by 0 exception on "0" press
@@ -280,7 +308,6 @@ void handle_keyboard_interrupt() {
 			  : "r" (0), "a" (1)
 			  : "cc");
 		}
-
 
 		// ----- HEAP DEMONSTATION -----
 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'm'){
@@ -385,9 +412,27 @@ void handle_keyboard_interrupt() {
 		// ----- END HEAP DEMONSTATION -----		
 		
 		
-		// print character with SHFT modification
-		else {
-			terminal_putchar(keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32));
+		//output
+		else{	
+			char character = keyboard_map[(uint8_t) keycode];
+			//handle shift and caps behavior with alphabet characters
+			if(character >= 'a' && character <= 'z'){
+				if((special_key_state.shift ^ special_key_state.caps) == 1){
+					terminal_putchar(character - 32);
+				}
+				else{
+					terminal_putchar(character);
+				}
+			}
+			//handle shift behavior with non alphabet characters
+			else{
+				if(special_key_state.shift == 1){
+					terminal_putchar(keyboard_map_shift[(uint8_t) keycode]);
+				}
+				else{
+					terminal_putchar(character);
+				}
+			}
 		}
 	}
 }
