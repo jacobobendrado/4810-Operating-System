@@ -26,12 +26,15 @@
 // ----- Includes -----
 #include <kernel/kernel.h>
 #include <kernel/boot.h>
+#include <fake_libc/fake_libc.h> // Is this still relevant?
+#include <memory/heap.h>
 #include <IO/keyboard_map.h>
 #include <IO/keyboard_map_shift.h>
 
 
 // ----- Global variables -----
-IDT_entry IDT[IDT_SIZE]; // This is our entire IDT. Room for 256 interrupts
+// This is our entire IDT. Room for 256 interrupts
+IDT_entry IDT[IDT_SIZE]; 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
@@ -41,7 +44,13 @@ uint16_t* terminal_buffer;
 KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
-
+// ----- debugging/example variables -----
+bool memory_mode = false;
+bool input_mode = false;
+uint32_t input_len = 0;
+char* input_ptr = NULL;
+uint8_t alloc_size = 0;
+void* ptr[10];
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -73,16 +82,8 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-size_t strlen(const char* str)
-{
-	size_t len = 0;
-	while (str[len])
-		len++;
-	return len;
-}
 
-
-void terminal_initialize(void)
+void init_terminal(void)
 {
 	terminal_row = 0;
 	terminal_column = 0;
@@ -100,9 +101,12 @@ void terminal_initialize(void)
 
 void terminal_advance_row()
 {
-	if (++terminal_row == VGA_HEIGHT)
+	if (++terminal_row == VGA_HEIGHT){
 		terminal_row = 0;
-	terminal_column=0;
+		terminal_clear();
+	}
+
+	terminal_column = 0;
 }
 
 
@@ -151,6 +155,16 @@ void kill_process() {
 	__asm__ volatile ("cli; hlt");
 }
 
+void terminal_clear() {
+	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
+		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+			terminal_putentryat(' ', terminal_color, x, y);
+		}	
+	}
+	terminal_column = 0;
+	terminal_row = 0;
+}
+
 void exception_handler() {
 	terminal_writestring("Exception!");
 	kill_process();
@@ -180,7 +194,7 @@ void init_idt() {
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
-	// by sending magic values (initialization command word)
+	// by sending magic values (initialization command words)
 	// to their I/O ports. 
 
 	// ICW1: begin PIC initialization
@@ -229,7 +243,7 @@ void init_idt() {
 	load_idt((uint32_t*) &idt_ptr);
 }
 
-void kb_init() {
+void init_kb() {
 	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
 
@@ -252,6 +266,11 @@ void handle_keyboard_interrupt() {
 			keycode = ioport_in(KEYBOARD_DATA_PORT);
 		}
 		
+		// handle right alt/ctrl
+		if ((uint8_t)keycode == 224) {
+			keycode = ioport_in(KEYBOARD_DATA_PORT);
+		}
+
 		// set shift flag based on keycode MSB 
 		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
 			keycode == 0x36 || (uint8_t)keycode == 0xB6){
@@ -289,6 +308,109 @@ void handle_keyboard_interrupt() {
 			  : "r" (0), "a" (1)
 			  : "cc");
 		}
+
+		// ----- HEAP DEMONSTATION -----
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'm'){
+			memory_mode = !memory_mode;
+			terminal_clear();
+			terminal_writestring(memory_mode ? "entering memory management mode...\n" \
+											 : "exiting memory management mode...\n");
+		}
+
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'c'){
+			input_mode = !input_mode;
+			if (input_mode) {
+				for (uint32_t i = 0; i < input_len; i++){
+					input_ptr[i] = (char)0;
+				}
+				input_len = 0;
+			}
+			terminal_clear();
+			terminal_writestring(input_mode ? "please enter a string: " \
+											 : "exiting input mode...\n");
+		}
+
+		else if (input_mode){
+			// allocate memory
+			if (input_len >= alloc_size) {
+				
+				// copy old string
+				if (input_ptr != NULL) {
+					char* temp = allocate(input_len+1);
+					for (uint32_t i = 0; i < input_len; i++){
+						temp[i] = input_ptr[i];
+					}
+					free((void**)&input_ptr);
+					input_ptr = temp;
+				} else {
+					input_ptr = allocate(1);
+				}
+				
+				// dont look im an ugly debug bodge
+				alloc_size = input_len < 7 ? 7 :\
+							 input_len < 23 ? 23 :\
+							 input_len < 55 ? 55 :\
+							 input_len < 119 ? 119 :\
+							 input_len < 247 ? 247 : 503;
+			}
+
+			char c = keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32);
+			terminal_putchar(c);
+			input_ptr[input_len] = c;
+			input_len++;
+		}
+		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
+				terminal_writestring(input_ptr);
+		} 
+
+		else if (memory_mode) {
+			if (keyboard_map[(uint8_t) keycode] == 'a') {
+				free(&ptr[1]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'q') {
+				free(&ptr[2]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'w') {
+				free(&ptr[3]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'e') {
+				free(&ptr[4]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'r') {
+				free(&ptr[5]);
+			} else if (keyboard_map[(uint8_t) keycode] == 't') {
+				free(&ptr[6]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'y') {
+				free(&ptr[7]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'u') {
+				free(&ptr[8]);
+			} else if (keyboard_map[(uint8_t) keycode] == 'i') {
+				free(&ptr[9]);
+			} 
+
+			// simple allocation routine
+			else if (keyboard_map[(uint8_t) keycode] == '1') {
+				ptr[1] = allocate(1);
+			} else if (keyboard_map[(uint8_t) keycode] == '2') {
+				ptr[2] = allocate(8);
+			} else if (keyboard_map[(uint8_t) keycode] == '3') {
+				ptr[3] = allocate(24);
+			} else if (keyboard_map[(uint8_t) keycode] == '4') {
+				ptr[4] = allocate(1);
+			} else if (keyboard_map[(uint8_t) keycode] == '5') {
+				ptr[5] = allocate(8);
+			} else if (keyboard_map[(uint8_t) keycode] == '6') {
+				ptr[6] = allocate(24);
+			} else if (keyboard_map[(uint8_t) keycode] == '7') {
+				ptr[7] = allocate(56);
+			} else if (keyboard_map[(uint8_t) keycode] == '8') {
+				ptr[8] = allocate(120);
+			} else if (keyboard_map[(uint8_t) keycode] == '9') {
+				ptr[9] = allocate(248);
+			} 
+
+			else if (keyboard_map[(uint8_t) keycode] == 'p') {
+				print_free_counts();
+			} 
+		}
+		// ----- END HEAP DEMONSTATION -----		
+		
 		
 		//output
 		else{	
@@ -322,9 +444,10 @@ void handle_div_by_zero() {
 
 // ----- Entry point -----
 void kernel_main() {
-    terminal_initialize();
+    init_terminal();
 	init_idt();
-	kb_init();
+	init_kb();
+	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
 	while(1);
 }

@@ -1,6 +1,7 @@
 # boot.S
 # Initial functions to boot and link to C code
 # Cedarville University 2024-25 OSDev Team
+
 # multiboot magic. taken from OSDev.wiki
 .set ALIGN,    1<<0           
 .set MEMINFO,  1<<1            
@@ -20,6 +21,7 @@
 .include "src/kernel/gdt.S"
 .include "src/kernel/ist.S"
 .include "src/kernel/syscall_table.S"
+
 # these functions will be called from kernel.c
 .global start
 .global load_gdt

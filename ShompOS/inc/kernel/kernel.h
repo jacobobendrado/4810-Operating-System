@@ -19,10 +19,11 @@ typedef struct _IDT_entry {
 
 typedef struct _KEY_state {
 	uint8_t unused : 4;
-    uint8_t caps: 1;
+  uint8_t caps: 1;
 	uint8_t alt : 1;
 	uint8_t ctrl : 1;
 	uint8_t shift : 1;
 } KEY_state;
 
 void terminal_writestring(const char* data);
+void terminal_clear();
