@@ -1,3 +1,7 @@
+# Makefile
+# Set up configurations of running program
+# Cedarville University 2024-25 OSDev Team
+
 PATH := $(HOME)/opt/cross/bin:$(PATH)
 
 # tools
@@ -19,7 +23,7 @@ CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
-				$(OBJ_DIR)/boot.o 
+				$(OBJ_DIR)/boot.o \
 
 .PHONY: all build run run-curses debug debug-curses clean
 
