@@ -8,7 +8,7 @@
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
 #define KERNEL_CODE_SEGMENT_OFFSET 0x8
 // 32-bit Interrupt gate: 0x8E
-// ( P=1, DPL=00b, S=0, type=1110b => type_attr=1000_1110b=0x8E) 
+// ( P=1, DPL=00b, S=0, type=1110b => type_attr=1000_1110b=0x8E)
 // (see https://wiki.osdev.org/Interrupt_Descriptor_Table#Structure_on_IA-32)
 #define IDT_INTERRUPT_GATE_32BIT 0x8E
 // 32-bit Trap gate: 0x8F
@@ -30,11 +30,13 @@
 #include <memory/heap.h>
 #include <IO/keyboard_map.h>
 #include <IO/keyboard_map_shift.h>
+#include <string.h>
+#include <ramfs.h>
 
 
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
-IDT_entry IDT[IDT_SIZE]; 
+IDT_entry IDT[IDT_SIZE];
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
@@ -159,7 +161,7 @@ void terminal_clear() {
 	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
 		for (uint8_t x = 0; x < VGA_WIDTH; x++){
 			terminal_putentryat(' ', terminal_color, x, y);
-		}	
+		}
 	}
 	terminal_column = 0;
 	terminal_row = 0;
@@ -195,15 +197,15 @@ void init_idt() {
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
 	// by sending magic values (initialization command words)
-	// to their I/O ports. 
+	// to their I/O ports.
 
 	// ICW1: begin PIC initialization
 	// by sending 0x11 to the command ports, the PICs
-	// will begin waiting for next 3 ICWs at their 
+	// will begin waiting for next 3 ICWs at their
 	// data ports
 	ioport_out(PIC1_COMMAND_PORT, 0x11);
 	ioport_out(PIC2_COMMAND_PORT, 0x11);
-	
+
 	// ICW2: vector offset
 	// each PIC has 8 interrupts, starting from a
 	// specified offset.
@@ -230,8 +232,8 @@ void init_idt() {
 
 	ioport_out(PIC1_DATA_PORT, 0xFF);
 	ioport_out(PIC2_DATA_PORT, 0xFF);
-	
-	// create a pointer to our idt, this is 
+
+	// create a pointer to our idt, this is
 	// required to be the format of limit (size
 	// in bytes - 1) and base (starting address)
 	IDT_pointer idt_ptr;
@@ -252,26 +254,26 @@ void handle_keyboard_interrupt() {
 	// are handling it.
 	ioport_out(PIC1_COMMAND_PORT, 0x20);
 	unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
-	
+
 	if (status & 0x1) {
-		
-		// the PIC will hand us an 8-bit value. bits 0..6 
-		// represent the key pressed, this is NOT an ascii 
+
+		// the PIC will hand us an 8-bit value. bits 0..6
+		// represent the key pressed, this is NOT an ascii
 		// value. bit 7 is 0 if the key has just been pressed,
-		// 1 if the key has just been released.  
+		// 1 if the key has just been released.
 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
 
 		// if E0, the next byte is the keycode. May want to set a flag for this
 		if((uint8_t)keycode == 0xE0){
 			keycode = ioport_in(KEYBOARD_DATA_PORT);
 		}
-		
+
 		// handle right alt/ctrl
 		if ((uint8_t)keycode == 224) {
 			keycode = ioport_in(KEYBOARD_DATA_PORT);
 		}
 
-		// set shift flag based on keycode MSB 
+		// set shift flag based on keycode MSB
 		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
 			keycode == 0x36 || (uint8_t)keycode == 0xB6){
 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
@@ -333,7 +335,7 @@ void handle_keyboard_interrupt() {
 		else if (input_mode){
 			// allocate memory
 			if (input_len >= alloc_size) {
-				
+
 				// copy old string
 				if (input_ptr != NULL) {
 					char* temp = allocate(input_len+1);
@@ -345,7 +347,7 @@ void handle_keyboard_interrupt() {
 				} else {
 					input_ptr = allocate(1);
 				}
-				
+
 				// dont look im an ugly debug bodge
 				alloc_size = input_len < 7 ? 7 :\
 							 input_len < 23 ? 23 :\
@@ -361,7 +363,7 @@ void handle_keyboard_interrupt() {
 		}
 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
 				terminal_writestring(input_ptr);
-		} 
+		}
 
 		else if (memory_mode) {
 			if (keyboard_map[(uint8_t) keycode] == 'a') {
@@ -382,7 +384,7 @@ void handle_keyboard_interrupt() {
 				free(&ptr[8]);
 			} else if (keyboard_map[(uint8_t) keycode] == 'i') {
 				free(&ptr[9]);
-			} 
+			}
 
 			// simple allocation routine
 			else if (keyboard_map[(uint8_t) keycode] == '1') {
@@ -403,17 +405,17 @@ void handle_keyboard_interrupt() {
 				ptr[8] = allocate(120);
 			} else if (keyboard_map[(uint8_t) keycode] == '9') {
 				ptr[9] = allocate(248);
-			} 
+			}
 
 			else if (keyboard_map[(uint8_t) keycode] == 'p') {
 				print_free_counts();
-			} 
+			}
 		}
-		// ----- END HEAP DEMONSTATION -----		
-		
-		
+		// ----- END HEAP DEMONSTATION -----
+
+
 		//output
-		else{	
+		else{
 			char character = keyboard_map[(uint8_t) keycode];
 			//handle shift and caps behavior with alphabet characters
 			if(character >= 'a' && character <= 'z'){
@@ -449,5 +451,17 @@ void kernel_main() {
 	init_kb();
 	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
+
+	///////////// Test RAMFS
+ // Test RAMFS
+    ramfs_dir_t* root = ramfs_create_root();
+    if (root) {
+        terminal_writestring("RAMFS root directory created successfully\n");
+        // Later we can test creating files and directories here
+    } else {
+        terminal_writestring("Failed to create RAMFS root directory\n");
+    }
+    ///////////// Test RAMFS
+
 	while(1);
 }
