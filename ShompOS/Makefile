@@ -19,12 +19,15 @@ KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
 ISO_OUT =	$(BUILD_DIR)/shompOS.iso
 
 # Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -ggdb
+# CFLAGS needs to know the subdirectories for includes
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -I./inc/fake_libc -I./inc/fs -I./inc/IO -I./inc/kernel -I./inc/memory -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/boot.o \
 				$(OBJ_DIR)/heap.o \
+				$(OBJ_DIR)/string.o \
+				$(OBJ_DIR)/ramfs.o \
 				$(OBJ_DIR)/fake_libc.o
 
 .PHONY: all build run run-curses debug debug-curses clean
@@ -57,7 +60,7 @@ debug: build
 	qemu-system-i386 -s -S -cdrom $(ISO_OUT) &
 	gdb $(KERNEL_OUT) -x debug.gdb
 debug-curses: build
-	qemu-system-i386 -display curses -s -S -cdrom $(ISO_OUT) 
+	qemu-system-i386 -display curses -s -S -cdrom $(ISO_OUT)
 
 clean:
 	rm -rf build

@@ -10,14 +10,6 @@ inline bool is_head_of_list(list_header* node) {
     return node->prev == node;
 }
 
-size_t strlen(const char* str)
-{
-	size_t len = 0;
-	while (str[len])
-		len++;
-	return len;
-}
-
 inline int max(int a, int b) {
 	return a >= b ? a : b;
 }
