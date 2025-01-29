@@ -452,14 +452,41 @@ void kernel_main() {
 	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
 
-	///////////// Test RAMFS
- // Test RAMFS
+    ///////////// Test RAMFS
     ramfs_dir_t* root = ramfs_create_root();
     if (root) {
-        terminal_writestring("RAMFS root directory created successfully\n");
-        // Later we can test creating files and directories here
-    } else {
-        terminal_writestring("Failed to create RAMFS root directory\n");
+        terminal_writestring("Creating directories...\n");
+        ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
+        if (bin) {
+            terminal_writestring("Created /bin directory\n");
+
+            // Create a test file in /bin
+            const char *hello_data = "echo 'Hello, RAMFS!'\n";
+            ramfs_file_t *hello = ramfs_create_file(bin, "hello.sh",
+                                                   hello_data,
+                                                   strlen(hello_data) + 1);
+            if (hello) {
+                terminal_writestring("Created file: /bin/hello.sh\n");
+                terminal_writestring("File contents: ");
+                terminal_writestring(hello->data);
+            }
+        }
+
+        ramfs_dir_t* home = ramfs_create_dir(root, "home");
+        if (home) {
+            terminal_writestring("Created /home directory\n");
+
+            // Create a test file in /home
+            const char *readme_data = "Welcome to your home directory!\n";
+            ramfs_file_t *readme = ramfs_create_file(home, "README.txt",
+                                                    readme_data,
+                                                    strlen(readme_data) + 1);
+            if (readme) {
+                terminal_writestring("Created file: /home/README.txt\n");
+                terminal_writestring("File contents: ");
+                terminal_writestring(readme->data);
+            }
+        }
     }
     ///////////// Test RAMFS
 

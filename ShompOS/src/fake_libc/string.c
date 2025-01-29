@@ -1,7 +1,5 @@
-// #include <string.h>
-#include "../../inc/fake_libc/string.h"
-// #include <heap.h>           //
-#include "../../inc/memory/heap.h"
+#include <string.h>
+#include <heap.h>           //
 
 // strlen: Return length of string
 size_t strlen(const char *s) {
