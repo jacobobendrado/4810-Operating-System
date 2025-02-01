@@ -111,3 +111,68 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
 
     return new_file;
 }
+
+
+// Helper functions that will be replaced by executable versions
+// Helper to print a string using terminal functions
+void ramfs_print_string(const char* str) {
+    terminal_writestring(str);
+}
+
+// List contents of a directory
+void ramfs_ls(ramfs_dir_t *dir) {
+    if (!dir) return;
+
+    terminal_writestring("Contents of ");
+    terminal_writestring(dir->name);
+    terminal_writestring(":\n");
+
+    // List files
+    for (size_t i = 0; i < dir->file_count; i++) {
+        terminal_writestring("  [File] ");
+        terminal_writestring(dir->files[i]->name);
+        terminal_writestring("\n");
+    }
+
+    // List subdirectories
+    for (size_t i = 0; i < dir->subdir_count; i++) {
+        terminal_writestring("  [Dir]  ");
+        terminal_writestring(dir->subdirs[i]->name);
+        terminal_writestring("/\n");
+    }
+}
+
+// Print working directory
+void ramfs_pwd(ramfs_dir_t *dir) {
+    if (!dir) return;
+
+    // Find the length of the full path
+    size_t length = 0;
+    ramfs_dir_t *temp = dir;
+    while (temp) {
+        length += strlen(temp->name) + 1; // +1 for '/'
+        temp = temp->parent;
+    }
+
+    // Build the path string
+    char *path = (char *)allocate(length + 1);
+    if (!path) return;
+    path[length] = '\0';
+
+    temp = dir;
+    char *ptr = path + length;
+    while (temp) {
+        size_t name_len = strlen(temp->name);
+        ptr -= name_len;
+        memcpy(ptr, temp->name, name_len);
+        if (temp->parent) {
+            *(--ptr) = '/';
+        }
+        temp = temp->parent;
+    }
+
+    terminal_writestring(path);
+    terminal_writestring("\n");
+    void *path_ptr = path;
+    free(&path_ptr);
+}

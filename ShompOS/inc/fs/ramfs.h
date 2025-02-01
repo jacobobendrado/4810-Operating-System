@@ -31,4 +31,12 @@ void ramfs_delete_file(ramfs_dir_t *dir, const char *name);
 ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name);
 ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path);
 
+// Helper functions before executables versions replace them
+//
+// List contents of a directory
+void ramfs_ls(ramfs_dir_t *dir);
+// Print working directory
+void ramfs_pwd(ramfs_dir_t *dir);
+
+
 #endif // RAMFS_H

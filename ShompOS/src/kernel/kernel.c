@@ -23,6 +23,9 @@
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_STATUS_PORT 0x64
 
+// ----- experimental attempt to run commands
+#define CMD_MAX_LEN 64
+
 // ----- Includes -----
 #include <kernel/kernel.h>
 #include <kernel/boot.h>
@@ -53,6 +56,13 @@ uint32_t input_len = 0;
 char* input_ptr = NULL;
 uint8_t alloc_size = 0;
 void* ptr[10];
+
+// ---- experimental attempt to run "commands"
+char cmd_buffer[CMD_MAX_LEN];
+size_t cmd_pos = 0;
+ramfs_dir_t* current_dir = NULL;
+// ----- experimental attempt to run commands
+
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -249,194 +259,270 @@ void init_kb() {
 	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
 
+// void handle_keyboard_interrupt() {
+// 	// clear interrupt; tells PIC we
+// 	// are handling it.
+// 	ioport_out(PIC1_COMMAND_PORT, 0x20);
+// 	unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
+
+// 	if (status & 0x1) {
+
+// 		// the PIC will hand us an 8-bit value. bits 0..6
+// 		// represent the key pressed, this is NOT an ascii
+// 		// value. bit 7 is 0 if the key has just been pressed,
+// 		// 1 if the key has just been released.
+// 		char keycode = ioport_in(KEYBOARD_DATA_PORT);
+
+// 		// if E0, the next byte is the keycode. May want to set a flag for this
+// 		if((uint8_t)keycode == 0xE0){
+// 			keycode = ioport_in(KEYBOARD_DATA_PORT);
+// 		}
+
+// 		// handle right alt/ctrl
+// 		if ((uint8_t)keycode == 224) {
+// 			keycode = ioport_in(KEYBOARD_DATA_PORT);
+// 		}
+
+// 		// set shift flag based on keycode MSB
+// 		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
+// 			keycode == 0x36 || (uint8_t)keycode == 0xB6){
+// 			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
+// 		}
+
+// 		// set alt flag, both left and right alt have same keycode
+// 		// but right alt is prepended with E0
+// 		// BUG: Pressing both alts and releasing only one will clear the flag
+// 		else if (keycode == 0x38 || (uint8_t)keycode == 0xB8){
+// 			special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
+// 		}
+
+// 		// set ctrl flag, both left and right ctrl have same keycode
+// 		// but right ctrl is prepended with E0
+// 		// BUG: Pressing both ctrls and releasing only one will clear the flag
+// 		else if (keycode == 0x1D || (uint8_t)keycode == 0x9D){
+// 			special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
+// 		}
+
+// 		//set caps flag
+// 		else if(keycode == 0x3A){
+//             		special_key_state.caps = 1 - special_key_state.caps;
+//         }
+
+// 		// ignore other key releases
+// 		else if ((uint8_t)keycode > 127) return;
+
+// 		// execute div by 0 exception on "0" press
+// 		else if (keyboard_map[(uint8_t) keycode] == '0') {
+// 			int temp;
+// 			__asm__ volatile (
+// 			  "div %1\n\t"
+// 			  : "=a" (temp)
+// 			  : "r" (0), "a" (1)
+// 			  : "cc");
+// 		}
+
+// 		// ----- HEAP DEMONSTATION -----
+// 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'm'){
+// 			memory_mode = !memory_mode;
+// 			terminal_clear();
+// 			terminal_writestring(memory_mode ? "entering memory management mode...\n" \
+// 											 : "exiting memory management mode...\n");
+// 		}
+
+// 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'c'){
+// 			input_mode = !input_mode;
+// 			if (input_mode) {
+// 				for (uint32_t i = 0; i < input_len; i++){
+// 					input_ptr[i] = (char)0;
+// 				}
+// 				input_len = 0;
+// 			}
+// 			terminal_clear();
+// 			terminal_writestring(input_mode ? "please enter a string: " \
+// 											 : "exiting input mode...\n");
+// 		}
+
+// 		else if (input_mode){
+// 			// allocate memory
+// 			if (input_len >= alloc_size) {
+
+// 				// copy old string
+// 				if (input_ptr != NULL) {
+// 					char* temp = allocate(input_len+1);
+// 					for (uint32_t i = 0; i < input_len; i++){
+// 						temp[i] = input_ptr[i];
+// 					}
+// 					free((void**)&input_ptr);
+// 					input_ptr = temp;
+// 				} else {
+// 					input_ptr = allocate(1);
+// 				}
+
+// 				// dont look im an ugly debug bodge
+// 				alloc_size = input_len < 7 ? 7 :\
+// 							 input_len < 23 ? 23 :\
+// 							 input_len < 55 ? 55 :\
+// 							 input_len < 119 ? 119 :\
+// 							 input_len < 247 ? 247 : 503;
+// 			}
+
+// 			char c = keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32);
+// 			terminal_putchar(c);
+// 			input_ptr[input_len] = c;
+// 			input_len++;
+// 		}
+// 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
+// 				terminal_writestring(input_ptr);
+// 		}
+
+// 		else if (memory_mode) {
+// 			if (keyboard_map[(uint8_t) keycode] == 'a') {
+// 				free(&ptr[1]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'q') {
+// 				free(&ptr[2]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'w') {
+// 				free(&ptr[3]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'e') {
+// 				free(&ptr[4]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'r') {
+// 				free(&ptr[5]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 't') {
+// 				free(&ptr[6]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'y') {
+// 				free(&ptr[7]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'u') {
+// 				free(&ptr[8]);
+// 			} else if (keyboard_map[(uint8_t) keycode] == 'i') {
+// 				free(&ptr[9]);
+// 			}
+
+// 			// simple allocation routine
+// 			else if (keyboard_map[(uint8_t) keycode] == '1') {
+// 				ptr[1] = allocate(1);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '2') {
+// 				ptr[2] = allocate(8);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '3') {
+// 				ptr[3] = allocate(24);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '4') {
+// 				ptr[4] = allocate(1);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '5') {
+// 				ptr[5] = allocate(8);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '6') {
+// 				ptr[6] = allocate(24);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '7') {
+// 				ptr[7] = allocate(56);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '8') {
+// 				ptr[8] = allocate(120);
+// 			} else if (keyboard_map[(uint8_t) keycode] == '9') {
+// 				ptr[9] = allocate(248);
+// 			}
+
+// 			else if (keyboard_map[(uint8_t) keycode] == 'p') {
+// 				print_free_counts();
+// 			}
+// 		}
+// 		// ----- END HEAP DEMONSTATION -----
+
+
+// 		//output
+// 		else{
+// 			char character = keyboard_map[(uint8_t) keycode];
+// 			//handle shift and caps behavior with alphabet characters
+// 			if(character >= 'a' && character <= 'z'){
+// 				if((special_key_state.shift ^ special_key_state.caps) == 1){
+// 					terminal_putchar(character - 32);
+// 				}
+// 				else{
+// 					terminal_putchar(character);
+// 				}
+// 			}
+// 			//handle shift behavior with non alphabet characters
+// 			else{
+// 				if(special_key_state.shift == 1){
+// 					terminal_putchar(keyboard_map_shift[(uint8_t) keycode]);
+// 				}
+// 				else{
+// 					terminal_putchar(character);
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
 void handle_keyboard_interrupt() {
-	// clear interrupt; tells PIC we
-	// are handling it.
-	ioport_out(PIC1_COMMAND_PORT, 0x20);
-	unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
+    ioport_out(PIC1_COMMAND_PORT, 0x20);
+    unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
 
-	if (status & 0x1) {
+    if (status & 0x1) {
+        char keycode = ioport_in(KEYBOARD_DATA_PORT);
 
-		// the PIC will hand us an 8-bit value. bits 0..6
-		// represent the key pressed, this is NOT an ascii
-		// value. bit 7 is 0 if the key has just been pressed,
-		// 1 if the key has just been released.
-		char keycode = ioport_in(KEYBOARD_DATA_PORT);
-
-		// if E0, the next byte is the keycode. May want to set a flag for this
-		if((uint8_t)keycode == 0xE0){
-			keycode = ioport_in(KEYBOARD_DATA_PORT);
-		}
-
-		// handle right alt/ctrl
-		if ((uint8_t)keycode == 224) {
-			keycode = ioport_in(KEYBOARD_DATA_PORT);
-		}
-
-		// set shift flag based on keycode MSB
-		if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
-			keycode == 0x36 || (uint8_t)keycode == 0xB6){
-			special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
-		}
-
-		// set alt flag, both left and right alt have same keycode
-		// but right alt is prepended with E0
-		// BUG: Pressing both alts and releasing only one will clear the flag
-		else if (keycode == 0x38 || (uint8_t)keycode == 0xB8){
-			special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
-		}
-
-		// set ctrl flag, both left and right ctrl have same keycode
-		// but right ctrl is prepended with E0
-		// BUG: Pressing both ctrls and releasing only one will clear the flag
-		else if (keycode == 0x1D || (uint8_t)keycode == 0x9D){
-			special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
-		}
-
-		//set caps flag
-		else if(keycode == 0x3A){
-            		special_key_state.caps = 1 - special_key_state.caps;
+        // Handle special keys as before
+        if((uint8_t)keycode == 0xE0){
+            keycode = ioport_in(KEYBOARD_DATA_PORT);
+        }
+        if ((uint8_t)keycode == 224) {
+            keycode = ioport_in(KEYBOARD_DATA_PORT);
         }
 
-		// ignore other key releases
-		else if ((uint8_t)keycode > 127) return;
+        // Handle special keys (shift, alt, ctrl, caps) as before
+        if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
+            keycode == 0x36 || (uint8_t)keycode == 0xB6){
+            special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if (keycode == 0x38 || (uint8_t)keycode == 0xB8){
+            special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if (keycode == 0x1D || (uint8_t)keycode == 0x9D){
+            special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if(keycode == 0x3A){
+            special_key_state.caps = 1 - special_key_state.caps;
+            return;
+        }
+        else if ((uint8_t)keycode > 127) return;
 
-		// execute div by 0 exception on "0" press
-		else if (keyboard_map[(uint8_t) keycode] == '0') {
-			int temp;
-			__asm__ volatile (
-			  "div %1\n\t"
-			  : "=a" (temp)
-			  : "r" (0), "a" (1)
-			  : "cc");
-		}
+        // Handle enter key - process command
+        if (keyboard_map[(uint8_t)keycode] == '\n') {
+            cmd_buffer[cmd_pos] = '\0';
+            terminal_putchar('\n');
 
-		// ----- HEAP DEMONSTATION -----
-		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'm'){
-			memory_mode = !memory_mode;
-			terminal_clear();
-			terminal_writestring(memory_mode ? "entering memory management mode...\n" \
-											 : "exiting memory management mode...\n");
-		}
+            if (strcmp(cmd_buffer, "ls") == 0) {
+                if (current_dir) {
+                    ramfs_ls(current_dir);
+                }
+            }
 
-		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'c'){
-			input_mode = !input_mode;
-			if (input_mode) {
-				for (uint32_t i = 0; i < input_len; i++){
-					input_ptr[i] = (char)0;
-				}
-				input_len = 0;
-			}
-			terminal_clear();
-			terminal_writestring(input_mode ? "please enter a string: " \
-											 : "exiting input mode...\n");
-		}
-
-		else if (input_mode){
-			// allocate memory
-			if (input_len >= alloc_size) {
-
-				// copy old string
-				if (input_ptr != NULL) {
-					char* temp = allocate(input_len+1);
-					for (uint32_t i = 0; i < input_len; i++){
-						temp[i] = input_ptr[i];
-					}
-					free((void**)&input_ptr);
-					input_ptr = temp;
-				} else {
-					input_ptr = allocate(1);
-				}
-
-				// dont look im an ugly debug bodge
-				alloc_size = input_len < 7 ? 7 :\
-							 input_len < 23 ? 23 :\
-							 input_len < 55 ? 55 :\
-							 input_len < 119 ? 119 :\
-							 input_len < 247 ? 247 : 503;
-			}
-
-			char c = keyboard_map[(uint8_t) keycode] - (special_key_state.shift * 32);
-			terminal_putchar(c);
-			input_ptr[input_len] = c;
-			input_len++;
-		}
-		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
-				terminal_writestring(input_ptr);
-		}
-
-		else if (memory_mode) {
-			if (keyboard_map[(uint8_t) keycode] == 'a') {
-				free(&ptr[1]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'q') {
-				free(&ptr[2]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'w') {
-				free(&ptr[3]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'e') {
-				free(&ptr[4]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'r') {
-				free(&ptr[5]);
-			} else if (keyboard_map[(uint8_t) keycode] == 't') {
-				free(&ptr[6]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'y') {
-				free(&ptr[7]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'u') {
-				free(&ptr[8]);
-			} else if (keyboard_map[(uint8_t) keycode] == 'i') {
-				free(&ptr[9]);
-			}
-
-			// simple allocation routine
-			else if (keyboard_map[(uint8_t) keycode] == '1') {
-				ptr[1] = allocate(1);
-			} else if (keyboard_map[(uint8_t) keycode] == '2') {
-				ptr[2] = allocate(8);
-			} else if (keyboard_map[(uint8_t) keycode] == '3') {
-				ptr[3] = allocate(24);
-			} else if (keyboard_map[(uint8_t) keycode] == '4') {
-				ptr[4] = allocate(1);
-			} else if (keyboard_map[(uint8_t) keycode] == '5') {
-				ptr[5] = allocate(8);
-			} else if (keyboard_map[(uint8_t) keycode] == '6') {
-				ptr[6] = allocate(24);
-			} else if (keyboard_map[(uint8_t) keycode] == '7') {
-				ptr[7] = allocate(56);
-			} else if (keyboard_map[(uint8_t) keycode] == '8') {
-				ptr[8] = allocate(120);
-			} else if (keyboard_map[(uint8_t) keycode] == '9') {
-				ptr[9] = allocate(248);
-			}
-
-			else if (keyboard_map[(uint8_t) keycode] == 'p') {
-				print_free_counts();
-			}
-		}
-		// ----- END HEAP DEMONSTATION -----
-
-
-		//output
-		else{
-			char character = keyboard_map[(uint8_t) keycode];
-			//handle shift and caps behavior with alphabet characters
-			if(character >= 'a' && character <= 'z'){
-				if((special_key_state.shift ^ special_key_state.caps) == 1){
-					terminal_putchar(character - 32);
-				}
-				else{
-					terminal_putchar(character);
-				}
-			}
-			//handle shift behavior with non alphabet characters
-			else{
-				if(special_key_state.shift == 1){
-					terminal_putchar(keyboard_map_shift[(uint8_t) keycode]);
-				}
-				else{
-					terminal_putchar(character);
-				}
-			}
-		}
-	}
+            cmd_pos = 0;
+            return;
+        }
+        // Handle backspace
+        else if (keyboard_map[(uint8_t)keycode] == '\b') {
+            if (cmd_pos > 0) {
+                cmd_pos--;
+                if (terminal_column > 0) {
+                    terminal_column--;
+                    terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+                }
+            }
+            return;
+        }
+        // Add character to command buffer
+        else if (cmd_pos < CMD_MAX_LEN - 1) {
+            char c = keyboard_map[(uint8_t)keycode];
+            if (c >= 'a' && c <= 'z') {
+                if ((special_key_state.shift ^ special_key_state.caps) == 1) {
+                    c -= 32;
+                }
+            } else if (special_key_state.shift) {
+                c = keyboard_map_shift[(uint8_t)keycode];
+            }
+            cmd_buffer[cmd_pos++] = c;
+            terminal_putchar(c);
+        }
+    }
 }
 
 void handle_div_by_zero() {
@@ -444,15 +530,7 @@ void handle_div_by_zero() {
 }
 
 
-// ----- Entry point -----
-void kernel_main() {
-    init_terminal();
-	init_idt();
-	init_kb();
-	init_heap(HEAP_LOWER_BOUND);
-	enable_interrupts();
-
-    ///////////// Test RAMFS
+void test_ramfs() {
     ramfs_dir_t* root = ramfs_create_root();
     if (root) {
         terminal_writestring("Creating directories...\n");
@@ -486,9 +564,41 @@ void kernel_main() {
                 terminal_writestring("File contents: ");
                 terminal_writestring(readme->data);
             }
+            ramfs_ls(home);
+            ramfs_ls(bin);
         }
     }
-    ///////////// Test RAMFS
+}
 
-	while(1);
+
+void init_shell(ramfs_dir_t* root) {
+    current_dir = root;
+}
+
+
+// ----- Entry point -----
+void kernel_main() {
+    init_terminal();
+    init_idt();
+    init_kb();
+    init_heap(HEAP_LOWER_BOUND);
+    enable_interrupts();
+
+    // Test RAMFS
+    // test_ramfs();
+
+    // Initialize RAMFS and shell
+    ramfs_dir_t* root = ramfs_create_root();
+    if (root) {
+        // test_ramfs();
+        init_shell(root);  // Initialize shell with root directory
+        ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
+        ramfs_dir_t* home = ramfs_create_dir(root, "home");
+            const char *hello_data = "echo 'Hello, RAMFS!'\n";
+            ramfs_file_t *hello = ramfs_create_file(root, "hello.sh",
+                                                   hello_data,
+                                                   strlen(hello_data) + 1);
+    }
+
+    while(1);
 }

@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <fake_libc/fake_libc.h>
+#include <fake_libc.h>
 
 inline bool is_end_of_list(list_header* node) {
     return node->next == node;
