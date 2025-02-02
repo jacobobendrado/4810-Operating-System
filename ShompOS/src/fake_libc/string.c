@@ -81,3 +81,71 @@ char *strdup(const char *s) {
 
     return copy;
 }
+
+int strncmp(const char *s1, const char *s2, size_t n) {
+    if (n == 0) return 0;
+
+    while (n-- > 0 && *s1 && *s2) {
+        if (*s1 != *s2) {
+            return (*(unsigned char *)s1 - *(unsigned char *)s2);
+        }
+        s1++;
+        s2++;
+    }
+
+    if (n > 0) {
+        if (*s1) return 1;
+        if (*s2) return -1;
+    }
+
+    return 0;
+}
+
+char *strtok(char *str, const char *delim) {
+    static char *last;
+
+    if (str) {
+        last = str;
+    } else if (!last) {
+        return NULL;
+    }
+
+    // Skip leading delimiters
+    while (*last && strchr(delim, *last)) {
+        last++;
+    }
+
+    // No more tokens
+    if (!*last) {
+        last = NULL;
+        return NULL;
+    }
+
+    // Find end of token
+    char *token = last;
+    while (*last && !strchr(delim, *last)) {
+        last++;
+    }
+
+    if (*last) {
+        *last++ = '\0';
+    } else {
+        last = NULL;
+    }
+
+    return token;
+}
+
+
+char *strchr(const char *s, int c) {
+    while (*s != '\0') {
+        if (*s == (char)c) {
+            return (char *)s;
+        }
+        s++;
+    }
+    if ((char)c == '\0') {
+        return (char *)s;
+    }
+    return NULL;
+}

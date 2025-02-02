@@ -112,67 +112,96 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
     return new_file;
 }
 
+// Delete a file from a directory
+void ramfs_delete_file(ramfs_dir_t *dir, const char *name) {
+    if (!dir || !name || !dir->files || dir->file_count == 0) return;
 
-// Helper functions that will be replaced by executable versions
-// Helper to print a string using terminal functions
-void ramfs_print_string(const char* str) {
-    terminal_writestring(str);
-}
-
-// List contents of a directory
-void ramfs_ls(ramfs_dir_t *dir) {
-    if (!dir) return;
-
-    terminal_writestring("Contents of ");
-    terminal_writestring(dir->name);
-    terminal_writestring(":\n");
-
-    // List files
+    // Find the file index
+    size_t file_idx = (size_t)-1;
     for (size_t i = 0; i < dir->file_count; i++) {
-        terminal_writestring("  [File] ");
-        terminal_writestring(dir->files[i]->name);
-        terminal_writestring("\n");
+        if (strcmp(dir->files[i]->name, name) == 0) {
+            file_idx = i;
+            break;
+        }
     }
 
-    // List subdirectories
-    for (size_t i = 0; i < dir->subdir_count; i++) {
-        terminal_writestring("  [Dir]  ");
-        terminal_writestring(dir->subdirs[i]->name);
-        terminal_writestring("/\n");
+    // If file not found, return
+    if (file_idx == (size_t)-1) return;
+
+    // Free the file's resources
+    void *name_ptr = dir->files[file_idx]->name;
+    void *data_ptr = dir->files[file_idx]->data;
+    void *file_ptr = dir->files[file_idx];
+    free(&name_ptr);
+    free(&data_ptr);
+    free(&file_ptr);
+
+    // If it's not the last file, shift remaining files left
+    if (file_idx < dir->file_count - 1) {
+        memmove(&dir->files[file_idx],
+                &dir->files[file_idx + 1],
+                (dir->file_count - file_idx - 1) * sizeof(ramfs_file_t*));
     }
+
+    // Shrink the files array if this wasn't the only file
+    if (dir->file_count > 1) {
+        ramfs_file_t **new_files = allocate((dir->file_count - 1) * sizeof(ramfs_file_t*));
+        if (new_files) {
+            memcpy(new_files, dir->files, (dir->file_count - 1) * sizeof(ramfs_file_t*));
+            void *old_files = dir->files;
+            free(&old_files);
+            dir->files = new_files;
+        }
+    } else {
+        // If it was the only file, just free the array
+        void *files_ptr = dir->files;
+        free(&files_ptr);
+        dir->files = NULL;
+    }
+
+    dir->file_count--;
 }
 
-// Print working directory
-void ramfs_pwd(ramfs_dir_t *dir) {
-    if (!dir) return;
+// Find a directory given a path
+ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path) {
+    if (!root || !path) return NULL;
 
-    // Find the length of the full path
-    size_t length = 0;
-    ramfs_dir_t *temp = dir;
-    while (temp) {
-        length += strlen(temp->name) + 1; // +1 for '/'
-        temp = temp->parent;
-    }
+    // Handle root directory case
+    if (strcmp(path, "/") == 0) return root;
 
-    // Build the path string
-    char *path = (char *)allocate(length + 1);
-    if (!path) return;
-    path[length] = '\0';
+    // Make a copy of path that we can modify
+    char *path_copy = strdup(path);
+    if (!path_copy) return NULL;
 
-    temp = dir;
-    char *ptr = path + length;
-    while (temp) {
-        size_t name_len = strlen(temp->name);
-        ptr -= name_len;
-        memcpy(ptr, temp->name, name_len);
-        if (temp->parent) {
-            *(--ptr) = '/';
+    // Start at root
+    ramfs_dir_t *current = root;
+
+    // Skip leading slash if present
+    char *token = strtok(path_copy, "/");
+
+    // Traverse the path
+    while (token) {
+        // Look for directory with matching name
+        ramfs_dir_t *found = NULL;
+        for (size_t i = 0; i < current->subdir_count; i++) {
+            if (strcmp(current->subdirs[i]->name, token) == 0) {
+                found = current->subdirs[i];
+                break;
+            }
         }
-        temp = temp->parent;
+
+        // If directory not found, clean up and return NULL
+        if (!found) {
+            void *path_ptr = path_copy;
+            free(&path_ptr);
+            return NULL;
+        }
+
+        current = found;
+        token = strtok(NULL, "/");
     }
 
-    terminal_writestring(path);
-    terminal_writestring("\n");
-    void *path_ptr = path;
+    void *path_ptr = path_copy;
     free(&path_ptr);
+    return current;
 }

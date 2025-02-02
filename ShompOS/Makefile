@@ -28,6 +28,7 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/heap.o \
 				$(OBJ_DIR)/string.o \
 				$(OBJ_DIR)/ramfs.o \
+				$(OBJ_DIR)/ramfs_executables.o \
 				$(OBJ_DIR)/fake_libc.o
 
 .PHONY: all build run run-curses debug debug-curses clean
