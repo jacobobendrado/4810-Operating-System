@@ -1,5 +1,10 @@
-ENTRY(_start)
+/* linker.ld
+** Loading file for OS
+** Cedarville University 2024-25 OSDev Team
+*/
 
+OUTPUT_FORMAT(elf32-i386)
+ENTRY(start)
 SECTIONS
 {
 	. = 2M;

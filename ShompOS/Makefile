@@ -1,69 +1,63 @@
+# Makefile
+# Set up configurations of running program
+# Cedarville University 2024-25 OSDev Team
+
 PATH := $(HOME)/opt/cross/bin:$(PATH)
 
-# Compiler and linker
+# tools
 CC = i686-elf-gcc
 LD = i686-elf-ld
+AS = i686-elf-as
 
-# Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra
-CFLAGS_DEBUG = -ggdb $(CFLAGS)
-LDFLAGS = -T src/linker.ld -nostdlib
-
-# Directories
+# directories
 SRC_DIR = src
 BUILD_DIR = build
-ISO_DIR = iso
-BUILD_DEBUG_DIR = build_debug
-ISO_DEBUG_DIR = iso_debug
+OBJ_DIR = $(BUILD_DIR)/obj
 
-# Files
-KERNEL_OBJS = $(BUILD_DIR)/kernel.o $(BUILD_DIR)/boot.o
-KERNEL_OBJS = $(BUILD_DEBUG_DIR)/kernel.o $(BUILD_DEBUG_DIR)/boot.o
+LINKER_FILE = $(SRC_DIR)/linker.ld
+KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
+ISO_OUT =	$(BUILD_DIR)/shompOS.iso
 
-.PHONY: all clean run iso iso_debug run_debug
+# Flags
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -ggdb
+LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
-all: $(BUILD_DIR)/kernel.bin
+KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
+				$(OBJ_DIR)/boot.o \
+				$(OBJ_DIR)/heap.o \
+				$(OBJ_DIR)/fake_libc.o
 
-$(BUILD_DIR)/kernel.bin: $(KERNEL_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^ -lgcc
+.PHONY: all build run run-curses debug debug-curses clean
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/kernel/%.c
-	mkdir -p $(BUILD_DIR)
+all: $(BUILD_DIR)/shompOS.bin
+
+$(BUILD_DIR)/shompOS.bin: $(KERNEL_OBJS)
+	$(LD) $(LDFLAGS) $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.c
+	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/kernel/%.s
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.S
+	mkdir -p $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@\
 
-iso: $(BUILD_DIR)/kernel.bin
-	mkdir -p $(ISO_DIR)/boot/grub
-	cp $(BUILD_DIR)/kernel.bin $(ISO_DIR)/boot/kernel.bin
-	cp $(SRC_DIR)/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISO_DIR)/shompos.iso $(ISO_DIR)
+build: $(BUILD_DIR)/shompOS.bin
+	mkdir -p build/iso/boot/grub
+	cp src/grub.cfg build/iso/boot/grub
+	cp ${KERNEL_OUT} build/iso/boot/grub
+	grub-mkrescue -o ${ISO_OUT} build/iso
+	rm -rf build/iso
 
-run: iso
-	qemu-system-i386 -cdrom $(ISO_DIR)/shompos.iso
-
-$(BUILD_DEBUG_DIR)/kernel.bin: $(KERNEL_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^ -lgcc
-
-$(BUILD_DEBUG_DIR)/%.o: $(SRC_DIR)/kernel/%.c
-	mkdir -p $(BUILD_DEBUG_DIR)
-	$(CC) $(CFLAGS_DEBUG) -c $< -o $@
-
-$(BUILD_DEBUG_DIR)/%.o: $(SRC_DIR)/kernel/%.s
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS_DEBUG) -c $< -o $@
-
-iso_debug: $(BUILD_DEBUG_DIR)/kernel.bin
-	mkdir -p $(ISO_DEBUG_DIR)/boot/grub
-	cp $(BUILD_DEBUG_DIR)/kernel.bin $(ISO_DEBUG_DIR)/boot/kernel.bin
-	cp $(SRC_DIR)/grub.cfg $(ISO_DEBUG_DIR)/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISO_DEBUG_DIR)/shompos.iso $(ISO_DEBUG_DIR)
-
-run_debug: iso_debug
-	qemu-system-i386 -s -S -cdrom $(ISO_DEBUG_DIR)/shompos.iso &
-	gdb $(ISO_DEBUG_DIR)/boot/kernel.bin -x debug.gdb
+run: build
+	qemu-system-i386 -cdrom ${ISO_OUT}
+run-curses: build
+	qemu-system-i386 -display curses -cdrom ${ISO_OUT}
+debug: build
+	qemu-system-i386 -s -S -cdrom $(ISO_OUT) &
+	gdb $(KERNEL_OUT) -x debug.gdb
+debug-curses: build
+	qemu-system-i386 -display curses -s -S -cdrom $(ISO_OUT) 
 
 clean:
-	rm -rf $(BUILD_DIR) $(BUILD_DEBUG_DIR) $(ISO_DIR) $(ISO_DEBUG_DIR)
+	rm -rf build
