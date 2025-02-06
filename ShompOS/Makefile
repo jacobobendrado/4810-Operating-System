@@ -20,7 +20,7 @@ ISO_OUT =	$(BUILD_DIR)/shompOS.iso
 
 # Flags
 # CFLAGS needs to know the subdirectories for includes
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -I./inc/fake_libc -I./inc/fs -I./inc/IO -I./inc/kernel -I./inc/memory -ggdb
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -I./inc/elf -I./inc/fake_libc -I./inc/fs -I./inc/IO -I./inc/kernel -I./inc/memory -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
@@ -29,7 +29,8 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/string.o \
 				$(OBJ_DIR)/ramfs.o \
 				$(OBJ_DIR)/ramfs_executables.o \
-				$(OBJ_DIR)/fake_libc.o
+				$(OBJ_DIR)/fake_libc.o \
+				$(OBJ_DIR)/test.txt.o
 
 .PHONY: all build run run-curses debug debug-curses clean
 
@@ -45,6 +46,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.c
 $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.S
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@\
+
+$(OBJ_DIR)/test.txt.o: inc/elf/test.txt
+	mkdir -p $(OBJ_DIR)
+	$(LD) -r -b binary -o $@ $<
 
 build: $(BUILD_DIR)/shompOS.bin
 	mkdir -p build/iso/boot/grub
