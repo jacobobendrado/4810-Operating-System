@@ -853,6 +853,9 @@ void init_shell(ramfs_dir_t* root) {
 //     while(1);
 // }
 
+extern char _binary_inc_elf_test_txt_start[];
+extern char _binary_inc_elf_test_txt_end[];
+
 void kernel_main() {
     // Initialize core systems
     init_terminal();
@@ -899,6 +902,8 @@ void kernel_main() {
     if (!welcome) {
         terminal_writestring("Warning: Failed to create welcome file\n");
     }
+
+    ramfs_file_t* test_txt = ramfs_create_file(root, "test.txt", _binary_inc_elf_test_txt_start, _binary_inc_elf_test_txt_end - _binary_inc_elf_test_txt_start + 1);
 
     // Initialize shell with root directory
     current_dir = root;
