@@ -1,10 +1,11 @@
 // kernel.c
 // Core functionality for the kernel
 // Cedarville University 2024-25 OSDev Team
+
 // IDT_SIZE: Specific to x86 architecture
-#define IDT_SIZE 256
+#define IDT_SIZE 0x100
 // EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
-#define EXCEPTIONS_SIZE 32
+#define EXCEPTIONS_SIZE 0x20
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
 #define KERNEL_CODE_SEGMENT_OFFSET 0x8
 // 32-bit Interrupt gate: 0x8E
@@ -22,12 +23,24 @@
 // IO Ports for Keyboard
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_STATUS_PORT 0x64
+/// IO Ports for PIT
+#define PIT_CHANNEL_0_DATA_PORT 0x40
+#define PIT_COMMAND_MODE_PORT 0x43
+// PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
+// 0xFFFF results in around 18.3 Hz, the slowest possible with 16 bits
+#define PIT_DIVISOR 0xFFFF
+
 
 // ----- Includes -----
 #include <kernel/kernel.h>
 #include <kernel/boot.h>
+
 #include <fake_libc/fake_libc.h> // Is this still relevant?
+
 #include <memory/heap.h>
+
+#include <process/process.h>
+
 #include <IO/keyboard_map.h>
 #include <IO/keyboard_map_shift.h>
 
@@ -35,12 +48,16 @@
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
 IDT_entry IDT[IDT_SIZE]; 
+
+// --- output ---
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
+
+// --- input ---
 KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
@@ -52,8 +69,11 @@ char* input_ptr = NULL;
 uint8_t alloc_size = 0;
 void* ptr[10];
 
+uint8_t new_pid;
+uint8_t new_pid2;
+uint8_t new_pid3;
 // ----- Bare Bones -----
-enum vga_color {
+typedef enum {
 	VGA_COLOR_BLACK = 0,
 	VGA_COLOR_BLUE = 1,
 	VGA_COLOR_GREEN = 2,
@@ -70,9 +90,9 @@ enum vga_color {
 	VGA_COLOR_LIGHT_MAGENTA = 13,
 	VGA_COLOR_LIGHT_BROWN = 14,
 	VGA_COLOR_WHITE = 15,
-};
+} vga_color;
 
-static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg)
+static inline uint8_t vga_entry_color(vga_color fg, vga_color bg)
 {
 	return fg | bg << 4;
 }
@@ -165,8 +185,12 @@ void terminal_clear() {
 	terminal_row = 0;
 }
 
+// void exception_handler(uint8_t num) {
 void exception_handler() {
 	terminal_writestring("Exception!");
+
+	// char c[3] = {(char)num+65, ' ', '\0'};
+	// terminal_writestring(c);
 	kill_process();
 }
 
@@ -178,19 +202,36 @@ void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 	IDT[interrupt_num].offset_upperbits = ((uint32_t)offset & 0xFFFF0000) >> 16;
 }
 
+void init_pit(uint32_t divisor) {
+    // Command byte: Channel 0, low/high byte, rate generator mode
+    ioport_out(PIT_COMMAND_MODE_PORT, 0x36);
+    
+    // Send divisor (low byte then high byte)
+    ioport_out(PIT_CHANNEL_0_DATA_PORT, divisor & 0xFF);
+    ioport_out(PIT_CHANNEL_0_DATA_PORT, (divisor >> 8) & 0xFF);
+
+	// Enable IRQ0 in the PIC
+    ioport_out(PIC1_DATA_PORT, ioport_in(0x21) & ~(1 << 0));
+}
+
+void handle_clock_interrupt() {
+	// clear interrupt; tells PIC we
+	// are handling it.
+	ioport_out(PIC1_COMMAND_PORT, 0x20);
+	
+	terminal_writestring("clock");
+	// __asm__ ("iret");
+}
 // ----- PageKey Video -----
 void init_idt() {
-	unsigned int offset;
-
 	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
-	offset = (unsigned int)syscall_handler;
-	idt_set_descriptor(0x80, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x80, (void*)syscall_handler,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x21, (void*)keyboard_handler,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x20, (void*)clock_handler, IDT_TRAP_GATE_32BIT);
 
-	offset = (unsigned int)keyboard_handler;
-	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
@@ -360,7 +401,7 @@ void handle_keyboard_interrupt() {
 			input_len++;
 		}
 		else if (special_key_state.ctrl && keyboard_map[(uint8_t) keycode] == 'v') {
-				terminal_writestring(input_ptr);
+			terminal_writestring(input_ptr);
 		} 
 
 		else if (memory_mode) {
@@ -410,8 +451,18 @@ void handle_keyboard_interrupt() {
 			} 
 		}
 		// ----- END HEAP DEMONSTATION -----		
-		
-		
+		// ----- MANUAL PROCESS SWITCHING -----	
+		else if (keyboard_map[(uint8_t) keycode] == 'z'){
+			switch_process(new_pid);
+		}
+		else if (keyboard_map[(uint8_t) keycode] == 'x'){
+			switch_process(new_pid2);
+		}
+		else if (keyboard_map[(uint8_t) keycode] == 'c'){
+			switch_process(new_pid3);
+		}
+		// ----- END MANUAL PROCESS SWITCHING -----	
+
 		//output
 		else{	
 			char character = keyboard_map[(uint8_t) keycode];
@@ -442,12 +493,57 @@ void handle_div_by_zero() {
 }
 
 
+void terminal_backstop(){
+	terminal_writestring("if you got here, all processes have exited.");
+	while(1){
+		terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+		terminal_writestring("__+_+_");
+	}
+}
+
+void pingus(){
+	terminal_clear();
+	uint8_t color = 0;
+	while (1) {
+    	char buf[18];
+    	addr_to_string(buf, (uintptr_t)color);
+		terminal_writestring(buf);
+    	// terminal_writestring("\n");  
+
+		color++;
+		terminal_setcolor(color);
+		for (uint16_t i = 0; i < VGA_WIDTH-4; i++){
+			terminal_writestring(" ");
+		}
+		for (uint32_t i = 0xFFFFFFF; i > 0; i-- );
+	}
+}
+
+void tty(){
+	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+	while(1){
+		if (terminal_color != vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK)) {
+			terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+			terminal_clear();
+		} 
+	}
+}
+
+#include <process/context_switch.h>
 // ----- Entry point -----
 void kernel_main() {
     init_terminal();
 	init_idt();
 	init_kb();
+	// init_pit(PIT_DIVISOR);
 	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
+
+	// context_switch((context_struct*)0xAAAA, (context_struct*)0xBBBB);
+	new_pid = init_process(&pingus, allocate(1000)+400);
+	new_pid2 = init_process(&terminal_backstop, allocate(1000)+400);
+	new_pid3 = init_process(&tty, allocate(1000)+400);
+	switch_process(new_pid3);
+	// init_process((void*)0xffffffff, allocate(1000));
 	while(1);
-}
+} 

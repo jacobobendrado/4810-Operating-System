@@ -28,6 +28,7 @@
 .global load_idt
 .global syscall_handler
 .global keyboard_handler
+.global clock_handler
 .global ioport_in
 .global ioport_out
 .global enable_interrupts
@@ -36,6 +37,7 @@
 # be called in assembly
 .extern kernel_main            
 .extern handle_keyboard_interrupt
+.extern handle_clock_interrupt
 
 # loads the gdt_descriptor found in gdt.s
 load_gdt:
@@ -73,6 +75,20 @@ keyboard_handler:
     popal
     iret
 
+clock_handler:
+    #pushl
+    #pushl %cs
+    #pushl %eip
+    pushal
+    cld
+    call handle_clock_interrupt
+    popal
+    #ret
+    #iret
+
+
+
+
 # reads a byte from an IO port (address
 # stored in dx) into al 
 ioport_in:
@@ -102,7 +118,7 @@ start:
     movl $stack_top, %esp  
     cli                      
 
-    movl $stack_top, %esp
+    #movl $stack_top, %esp
     call kernel_main
     hlt
 

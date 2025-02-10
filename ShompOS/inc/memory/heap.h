@@ -28,3 +28,4 @@ int8_t sbrk(int32_t inc);
 
 // ----- FOR DEBUGGING ------
 void print_free_counts();
+char* addr_to_string(char* buffer, uintptr_t addr);

@@ -25,7 +25,9 @@ LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/boot.o \
 				$(OBJ_DIR)/heap.o \
-				$(OBJ_DIR)/fake_libc.o
+				$(OBJ_DIR)/fake_libc.o \
+				$(OBJ_DIR)/process.o \
+				$(OBJ_DIR)/context_switch.o
 
 .PHONY: all build run run-curses debug debug-curses clean
 

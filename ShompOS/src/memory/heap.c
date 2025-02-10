@@ -302,7 +302,7 @@ int8_t sbrk(int32_t inc) {
 // ----- FOR DEBUGGING ------
 // stole from Claude
 char* addr_to_string(char* buffer, uintptr_t addr) {
-    const char hex_digits[] = "0123456789abcdef";
+    const char hex_digits[] = "0123456789ABCDEF";
     buffer[0] = '0';
     buffer[1] = 'x';
     
