@@ -36,6 +36,7 @@
 #include <string.h>
 #include <ramfs.h>
 #include <ramfs_executables.h>
+#include <elf.h>
 
 
 // ----- Global variables -----
@@ -853,8 +854,8 @@ void init_shell(ramfs_dir_t* root) {
 //     while(1);
 // }
 
-extern char _binary_inc_elf_test_txt_start[];
-extern char _binary_inc_elf_test_txt_end[];
+extern char _binary_inc_elf_newTest_start[];
+extern char _binary_inc_elf_newTest_end[];
 
 void kernel_main() {
     // Initialize core systems
@@ -903,7 +904,14 @@ void kernel_main() {
         terminal_writestring("Warning: Failed to create welcome file\n");
     }
 
-    ramfs_file_t* test_txt = ramfs_create_file(root, "test.txt", _binary_inc_elf_test_txt_start, _binary_inc_elf_test_txt_end - _binary_inc_elf_test_txt_start + 1);
+    ramfs_file_t* test_exe = ramfs_create_file(root, "test", _binary_inc_elf_newTest_start, _binary_inc_elf_newTest_end - _binary_inc_elf_newTest_start + 1);
+
+    if (init_elf(test_exe) == 1) {
+        terminal_writestring("Good work!");
+    }
+    else {
+        terminal_writestring("Bad work :(");
+    }
 
     // Initialize shell with root directory
     current_dir = root;
