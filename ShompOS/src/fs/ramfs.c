@@ -205,3 +205,28 @@ ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path) {
     free(&path_ptr);
     return current;
 }
+
+// Initialize the filesystem. Returns the root directory
+ramfs_dir_t* init_fs() {
+
+    ramfs_dir_t* root = ramfs_create_root();
+    if (!root) {
+        return NULL;
+    }
+
+    // Set up initial filesystem structure
+    // ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
+    // ramfs_dir_t* home = ramfs_create_dir(root, "home");
+    // ramfs_dir_t* mnt = ramfs_create_dir(root, "mnt");
+
+    // if (!bin || !home || !mnt) {
+    //     return NULL;
+    // }
+
+    if (init_mnt(root)) {
+        return NULL;
+    }
+
+    // Initialize shell with root directory
+    return root;
+}

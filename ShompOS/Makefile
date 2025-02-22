@@ -10,17 +10,20 @@ LD = i686-elf-ld
 AS = i686-elf-as
 
 # directories
-SRC_DIR = src
-BUILD_DIR = build
+SRC_DIR = ./src
+INC_DIR = ./inc
+MNT_DIR = ./mnt
+BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj
+MNT_OUT_DIR = $(BUILD_DIR)/mnt
 
 LINKER_FILE = $(SRC_DIR)/linker.ld
 KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
-ISO_OUT =	$(BUILD_DIR)/shompOS.iso
+ISO_OUT = $(BUILD_DIR)/shompOS.iso
 
 # Flags
 # CFLAGS needs to know the subdirectories for includes
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I./inc -I./inc/elf -I./inc/fake_libc -I./inc/fs -I./inc/IO -I./inc/kernel -I./inc/memory -ggdb
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I$(INC_DIR) -I$(INC_DIR)/elf -I$(INC_DIR)/fake_libc -I$(INC_DIR)/fs -I$(INC_DIR)/IO -I$(INC_DIR)/kernel -I$(INC_DIR)/memory -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
@@ -31,7 +34,7 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/ramfs_executables.o \
 				$(OBJ_DIR)/fake_libc.o \
 				$(OBJ_DIR)/elf.o \
-				$(OBJ_DIR)/test.o
+				$(OBJ_DIR)/mnt.o
 
 .PHONY: all build run run-curses debug debug-curses clean
 
@@ -46,11 +49,28 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.c
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.S
 	mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@\
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/test.o: inc/elf/newTest
+$(OBJ_DIR)/mnt.o: $(OBJ_DIR)/mnt.c
 	mkdir -p $(OBJ_DIR)
-	$(LD) -r -b binary -o $@ $<
+	$(CC) $(CFLAGS) -c $< -o "$@.temp"
+	$(CC) -r "$@.temp" $(wildcard $(MNT_OUT_DIR)/*) -o $@
+
+$(OBJ_DIR)/mnt.c:
+	mkdir -p $(MNT_OUT_DIR)
+	mkdir -p $(OBJ_DIR)
+	tempfile="`mktemp $(MNT_OUT_DIR)/tempfile_XXXXXX.txt`"; \
+	for filename in $(MNT_DIR)/*; do \
+		[ -e "$$filename" ] || continue; \
+		$(LD) -r -b binary -o "$(MNT_OUT_DIR)/$$(basename "$$filename").o" "$$filename"; \
+		touch $$tempfile; \
+		echo -n "`echo $$filename | sed 's/[ \/\.]/_/g'` " >> $$tempfile; \
+		echo $$(basename "$$filename") >> $$tempfile; \
+	done; \
+	awk -f mnt_setup_1.awk $$tempfile > $@; \
+	awk -f mnt_setup_2.awk $$tempfile >> $@; \
+	rm $$tempfile
+
 
 build: $(BUILD_DIR)/shompOS.bin
 	mkdir -p build/iso/boot/grub

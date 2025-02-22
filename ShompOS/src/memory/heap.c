@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <kernel/kernel.h>
 #include <fake_libc/fake_libc.h>
+#include <stdint.h>
 
 // an array of FIFO linked lists which represents free memory blocks for
 // each of the valid scales. 
@@ -299,61 +300,61 @@ int8_t sbrk(int32_t inc) {
 }
 
 
-// ----- FOR DEBUGGING ------
-// stole from Claude
-char* addr_to_string(char* buffer, uintptr_t addr) {
-    const char hex_digits[] = "0123456789abcdef";
-    buffer[0] = '0';
-    buffer[1] = 'x';
+// // ----- FOR DEBUGGING ------
+// // stole from Claude
+// char* addr_to_string(char* buffer, uintptr_t addr) {
+//     const char hex_digits[] = "0123456789abcdef";
+//     buffer[0] = '0';
+//     buffer[1] = 'x';
     
-    // Handle 0 specially
-    if (addr == 0) {
-        buffer[2] = '0';
-        buffer[3] = '\0';
-        return buffer;
-    }
+//     // Handle 0 specially
+//     if (addr == 0) {
+//         buffer[2] = '0';
+//         buffer[3] = '\0';
+//         return buffer;
+//     }
     
-    // Find first significant digit position
-    int digits = 0;
-    uintptr_t temp = addr;
-    while (temp) {
-        digits++;
-        temp >>= 4;
-    }
+//     // Find first significant digit position
+//     int digits = 0;
+//     uintptr_t temp = addr;
+//     while (temp) {
+//         digits++;
+//         temp >>= 4;
+//     }
     
-    // Write digits from most to least significant
-    buffer[digits + 2] = '\0';  // +2 for "0x" prefix
-    int pos = digits + 1;       // Position to write next digit
+//     // Write digits from most to least significant
+//     buffer[digits + 2] = '\0';  // +2 for "0x" prefix
+//     int pos = digits + 1;       // Position to write next digit
     
-    while (addr) {
-        buffer[pos--] = hex_digits[addr & 0xF];
-        addr >>= 4;
-    }
+//     while (addr) {
+//         buffer[pos--] = hex_digits[addr & 0xF];
+//         addr >>= 4;
+//     }
     
-    return buffer;
-}
+//     return buffer;
+// }
 
-void print_free_counts(){
-    terminal_writestring("free_block counts:\n");
-    for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
-        uint32_t count = 0;
-        list_header* curr = &free_list[i];
-        while (curr->next != curr)
-        {
-            count++;
-            curr = curr->next;
-        }
-        char c[2] = {(char)count+48, '\0'};
-        char c2[2] = {i==10 ? 'A' : (char)i+48, '\0'};
-        terminal_writestring(c);
-        terminal_writestring(" free blocks of scale ");
-        terminal_writestring(c2);
-        terminal_writestring("\n");  
-    } 
-    char buf[18];
-    addr_to_string(buf, (uintptr_t)current_brk);
-    terminal_writestring("brk at ");
-    terminal_writestring(buf);
-    terminal_writestring("\n");  
-}
+// void print_free_counts(){
+//     terminal_writestring("free_block counts:\n");
+//     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
+//         uint32_t count = 0;
+//         list_header* curr = &free_list[i];
+//         while (curr->next != curr)
+//         {
+//             count++;
+//             curr = curr->next;
+//         }
+//         char c[2] = {(char)count+48, '\0'};
+//         char c2[2] = {i==10 ? 'A' : (char)i+48, '\0'};
+//         terminal_writestring(c);
+//         terminal_writestring(" free blocks of scale ");
+//         terminal_writestring(c2);
+//         terminal_writestring("\n");  
+//     } 
+//     char buf[18];
+//     addr_to_string(buf, (uintptr_t)current_brk);
+//     terminal_writestring("brk at ");
+//     terminal_writestring(buf);
+//     terminal_writestring("\n");  
+// }
 

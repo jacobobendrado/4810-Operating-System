@@ -854,8 +854,8 @@ void init_shell(ramfs_dir_t* root) {
 //     while(1);
 // }
 
-extern char _binary_inc_elf_newTest_start[];
-extern char _binary_inc_elf_newTest_end[];
+// extern char _binary_inc_elf_newTest_start[];
+// extern char _binary_inc_elf_newTest_end[];
 
 void kernel_main() {
     // Initialize core systems
@@ -863,58 +863,15 @@ void kernel_main() {
     init_idt();
     init_kb();
     init_heap(HEAP_LOWER_BOUND);
+    current_dir = init_fs();
+
+    if (!current_dir) {
+        terminal_writestring("Failed to initialize filesystem.");
+        return;
+    }
 
     // Enable interrupts after all handlers are set up
     enable_interrupts();
-
-    // Initialize filesystem
-    ramfs_dir_t* root = ramfs_create_root();
-    if (!root) {
-        terminal_writestring("Failed to initialize filesystem\n");
-        return;
-    }
-
-    // Set up initial filesystem structure
-    ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
-    ramfs_dir_t* home = ramfs_create_dir(root, "home");
-
-    if (!bin || !home) {
-        terminal_writestring("Failed to create essential directories\n");
-        return;
-    }
-
-    // Create welcome file
-    const char* welcome_text =
-        "Welcome to ShompOS!\n"
-        "Available commands:\n"
-        "  clear - Clear the screen\n"
-        "  ls    - List directory contents\n"
-        "  pwd   - Print working directory\n"
-        "  cat   - Display file contents\n"
-        "  touch - Create new file\n"
-        "  mkdir - Create directory\n"
-        "  rm    - Remove file\n"
-        "  help  - Show this help message\n";
-
-    ramfs_file_t* welcome = ramfs_create_file(root, "welcome.txt",
-                                             welcome_text,
-                                             strlen(welcome_text) + 1);
-
-    if (!welcome) {
-        terminal_writestring("Warning: Failed to create welcome file\n");
-    }
-
-    ramfs_file_t* test_exe = ramfs_create_file(root, "test", _binary_inc_elf_newTest_start, _binary_inc_elf_newTest_end - _binary_inc_elf_newTest_start + 1);
-
-    if (init_elf(test_exe) == 1) {
-        terminal_writestring("Good work!");
-    }
-    else {
-        terminal_writestring("Bad work :(");
-    }
-
-    // Initialize shell with root directory
-    current_dir = root;
 
     // Initial terminal prompt
     terminal_writestring("ShompOS initialized successfully!\n");
