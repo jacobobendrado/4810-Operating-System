@@ -1,15 +1,16 @@
 #!/bin/bash
 
 # Expected usage: $0 MNT_DIR LD MNT_OUT_DIR outfile_name
-if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 <MNT_DIR> <LD> <MNT_OUT_DIR> <outfile_name>"
+if [ "$#" -ne 5 ]; then
+    echo "Usage: $0 <MNT_DIR> <LD> <MNT_OUT_DIR> <SCRIPTS_DIR> <outfile_name>"
     exit 1
 fi
 
 MNT_DIR="$1"
 LD="$2"
 MNT_OUT_DIR="$3"
-OUTFILE="$4"
+SCRIPTS_DIR="$4"
+OUTFILE="$5"
 
 ech() { # text, file
     echo -n "$1 " >> "$2"
@@ -50,6 +51,6 @@ tempfile="`mktemp $MNT_OUT_DIR/tempfile_XXXXXX.txt`"
 echo `echo "$MNT_DIR" | sed 's/[ \/\.]/_/g'` >> $tempfile
 check_dir $MNT_DIR $tempfile
 echo $OUTFILE
-awk -f mnt_setup_1.awk $tempfile > $OUTFILE
-awk -f mnt_setup_2.awk $tempfile >> $OUTFILE
+awk -f "$SCRIPTS_DIR"/mnt_setup_1.awk $tempfile > $OUTFILE
+awk -f "$SCRIPTS_DIR"/mnt_setup_2.awk $tempfile >> $OUTFILE
 rm $tempfile

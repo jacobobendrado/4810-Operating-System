@@ -13,6 +13,7 @@ AS = i686-elf-as
 SRC_DIR = ./src
 INC_DIR = ./inc
 MNT_DIR = ./mnt
+SCRIPTS_DIR = ./scripts
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj
 MNT_OUT_DIR = $(BUILD_DIR)/mnt
@@ -60,7 +61,7 @@ $(OBJ_DIR)/mnt.o: $(OBJ_DIR)/mnt.c
 $(OBJ_DIR)/mnt.c:
 	mkdir -p $(MNT_OUT_DIR)
 	mkdir -p $(OBJ_DIR)
-	./mnt_setup.sh $(MNT_DIR) $(LD) $(MNT_OUT_DIR) $@
+	$(SCRIPTS_DIR)/mnt_setup.sh $(MNT_DIR) $(LD) $(MNT_OUT_DIR) $(SCRIPTS_DIR) $@
 
 build: $(BUILD_DIR)/shompOS.bin
 	mkdir -p build/iso/boot/grub
