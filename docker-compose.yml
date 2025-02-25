@@ -1,0 +1,13 @@
+services:
+  shompos-build-env:
+    image: shompos-build-env
+    container_name: shompos-build-env
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /home/mrupp/Coding/new-OSDev/4810-Operating-System/ShompOS:/src
+    working_dir: /src
+    stdin_open: true
+    tty: true
+    restart: no

@@ -2,14 +2,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <fake_libc/fake_libc.h>
-
+#include <fake_libc.h>    // #include "../../inc/fake_libc/fake_libc.h"
 
 #define HEAP_LOWER_BOUND 0x4000000
-#define MAX_BLOCK_SCALE 0x0A 
+#define MAX_BLOCK_SCALE 0x0F
 #define MIN_BLOCK_SCALE 0x04
 
-// sits at the 9 LSB of every memory block. a block's size in bytes is 
+// sits at the 9 LSB of every memory block. a block's size in bytes is
 // 2^block_header.scale
 // the minimum allocation is 16 bytes to acommodate the 9 bytes header.
 // the max allocation size is UNREASONABLY large and would not see use
