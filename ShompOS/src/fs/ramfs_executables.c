@@ -169,3 +169,7 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
         terminal_writestring("Failed to create file\n");
     }
 }
+
+ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *dir_name) {
+    return ramfs_find_dir(root, dir_name);
+}

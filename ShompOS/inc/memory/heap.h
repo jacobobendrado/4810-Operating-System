@@ -5,7 +5,7 @@
 #include <fake_libc.h>    // #include "../../inc/fake_libc/fake_libc.h"
 
 #define HEAP_LOWER_BOUND 0x4000000
-#define MAX_BLOCK_SCALE 0x0A
+#define MAX_BLOCK_SCALE 0x0F
 #define MIN_BLOCK_SCALE 0x04
 
 // sits at the 9 LSB of every memory block. a block's size in bytes is

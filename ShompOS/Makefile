@@ -55,22 +55,12 @@ $(OBJ_DIR)/mnt.o: $(OBJ_DIR)/mnt.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o "$@.temp"
 	$(CC) -r "$@.temp" $(wildcard $(MNT_OUT_DIR)/*) -o $@
+	rm "$@.temp"
 
 $(OBJ_DIR)/mnt.c:
 	mkdir -p $(MNT_OUT_DIR)
 	mkdir -p $(OBJ_DIR)
-	tempfile="`mktemp $(MNT_OUT_DIR)/tempfile_XXXXXX.txt`"; \
-	for filename in $(MNT_DIR)/*; do \
-		[ -e "$$filename" ] || continue; \
-		$(LD) -r -b binary -o "$(MNT_OUT_DIR)/$$(basename "$$filename").o" "$$filename"; \
-		touch $$tempfile; \
-		echo -n "`echo $$filename | sed 's/[ \/\.]/_/g'` " >> $$tempfile; \
-		echo $$(basename "$$filename") >> $$tempfile; \
-	done; \
-	awk -f mnt_setup_1.awk $$tempfile > $@; \
-	awk -f mnt_setup_2.awk $$tempfile >> $@; \
-	rm $$tempfile
-
+	./mnt_setup.sh $(MNT_DIR) $(LD) $(MNT_OUT_DIR) $@
 
 build: $(BUILD_DIR)/shompOS.bin
 	mkdir -p build/iso/boot/grub

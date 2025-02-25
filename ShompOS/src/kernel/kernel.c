@@ -63,6 +63,7 @@ void* ptr[10];
 char cmd_buffer[CMD_MAX_LEN];
 size_t cmd_pos = 0;
 ramfs_dir_t* current_dir = NULL;
+ramfs_dir_t* system_root = NULL;
 // ----- experimental attempt to run commands
 
 
@@ -814,6 +815,20 @@ void handle_command(char* cmd) {
         terminal_writestring("  rm <file>   Remove file\n");
         terminal_writestring("  help        Show this help message\n");
     }
+    else if (strcmp(cmd_name, "cd") == 0) {
+        if (!args) {
+            terminal_writestring("Usage: rm <filename>\n");
+            return;
+        }
+        ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
+        if (result_dir) {
+            current_dir = result_dir;
+        }
+        else {
+            terminal_writestring("Failed to find directory\n");
+        }
+        
+    }
     else if (cmd_name[0] != '\0') {
         terminal_writestring("Unknown command: ");
         terminal_writestring(cmd_name);
@@ -863,7 +878,7 @@ void kernel_main() {
     init_idt();
     init_kb();
     init_heap(HEAP_LOWER_BOUND);
-    current_dir = init_fs();
+    current_dir = system_root = init_fs();
 
     if (!current_dir) {
         terminal_writestring("Failed to initialize filesystem.");

@@ -1,9 +1,13 @@
-BEGIN {
-    print "int init_mnt(ramfs_dir_t *mnt) {"
+/^_/ {
+    print "int init_mnt(ramfs_dir_t *" $1 ") {"
 }
 
-{
-    print "ramfs_create_file(mnt, \"" $2 "\", _binary_" $1 "_start, _binary_" $1 "_end - _binary_" $1 "_start);"
+/^f/ {
+    print "ramfs_create_file(" $2 ", \"" $3 "\", _binary_" $4 "_start, _binary_" $4 "_end - _binary_" $4 "_start);"
+}
+
+/^d/ {
+    print "ramfs_dir_t *" $4 " = ramfs_create_dir(" $2 ", \"" $3 "\");"
 }
 
 END {
