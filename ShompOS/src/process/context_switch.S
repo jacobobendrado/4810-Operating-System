@@ -1,28 +1,25 @@
 .global context_switch
 context_switch:
-    pushl %ebp              # Save old base pointer
-    movl %esp, %ebp        # Set up new base pointer
+    # save old base pointer and set up new base pointer
+    pushl %ebp     
+    movl %esp, %ebp
 
-    # Save current context
-    pushal                      # Push all general purpose registers
-    pushfl                      # Push FLAGS register
+    # save context to current stack
+    pushal
+    pushfl
 
-    
-    # Get current process struct pointer (first argument)
+    # get current process_struct pointer and save current ESP to it
     movl 8(%ebp), %ebx
-    movl %esp, (%ebx)          # Save current ESP to process struct
-    
-    # Get new process struct pointer (second argument)
-    movl 12(%ebp), %ebx
-    movl (%ebx), %esp          # Load new ESP
-    
-    # Restore new context
-    popfl                       # Restore FLAGS
-    popal                       # Restore all general purpose registers
-    
-    leave
-    ret                        # This will pop the saved EIP and continue execution
+    movl %esp, (%ebx)          
 
-.global init_process_stack
-init_process_stack:
+    # get new process_struct pointer and load it's ESP
+    movl 12(%ebp), %ebx
+    movl (%ebx), %esp
     
+    # restore context from new stack
+    popfl
+    popal
+    
+    # pop the saved EIP and continue execution
+    leave
+    ret

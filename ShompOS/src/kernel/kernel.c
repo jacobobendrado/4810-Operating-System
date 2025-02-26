@@ -28,7 +28,7 @@
 #define PIT_COMMAND_MODE_PORT 0x43
 // PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
 // 0xFFFF results in around 18.3 Hz, the slowest possible with 16 bits
-#define PIT_DIVISOR 0xFFFF
+#define PIT_DIVISOR 0xFFF
 
 
 // ----- Includes -----
@@ -69,9 +69,6 @@ char* input_ptr = NULL;
 uint8_t alloc_size = 0;
 void* ptr[10];
 
-uint8_t new_pid;
-uint8_t new_pid2;
-uint8_t new_pid3;
 // ----- Bare Bones -----
 typedef enum {
 	VGA_COLOR_BLACK = 0,
@@ -171,6 +168,7 @@ void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
 }
+
 void kill_process() {
 	__asm__ volatile ("cli; hlt");
 }
@@ -178,11 +176,22 @@ void kill_process() {
 void terminal_clear() {
 	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
 		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+
 			terminal_putentryat(' ', terminal_color, x, y);
 		}	
 	}
 	terminal_column = 0;
 	terminal_row = 0;
+}
+
+void terminal_refresh() {
+	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
+		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+			size_t index = y * VGA_WIDTH + x;
+			uint16_t oc = terminal_buffer[index];
+			terminal_putentryat(oc, terminal_color, x, y);
+		}	
+	} 
 }
 
 // void exception_handler(uint8_t num) {
@@ -219,7 +228,8 @@ void handle_clock_interrupt() {
 	// are handling it.
 	ioport_out(PIC1_COMMAND_PORT, 0x20);
 	
-	terminal_writestring("clock");
+	// terminal_writestring("clock");
+	switch_process_from_queue();
 	// __asm__ ("iret");
 }
 // ----- PageKey Video -----
@@ -451,17 +461,6 @@ void handle_keyboard_interrupt() {
 			} 
 		}
 		// ----- END HEAP DEMONSTATION -----		
-		// ----- MANUAL PROCESS SWITCHING -----	
-		else if (keyboard_map[(uint8_t) keycode] == 'z'){
-			switch_process(new_pid);
-		}
-		else if (keyboard_map[(uint8_t) keycode] == 'x'){
-			switch_process(new_pid2);
-		}
-		else if (keyboard_map[(uint8_t) keycode] == 'c'){
-			switch_process(new_pid3);
-		}
-		// ----- END MANUAL PROCESS SWITCHING -----	
 
 		//output
 		else{	
@@ -493,57 +492,76 @@ void handle_div_by_zero() {
 }
 
 
-void terminal_backstop(){
-	terminal_writestring("if you got here, all processes have exited.");
+void sample() {
+	uint8_t row = 0;
+	uint8_t col = 0;
 	while(1){
-		terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
-		terminal_writestring("__+_+_");
+		uint8_t color = vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+		char buf[5] = "text";
+		
+		for (uint8_t i = 0; i < VGA_HEIGHT+4; i++){
+			terminal_putentryat(' ', color, i, row);
+		}
+		for (uint8_t i = 0; i < 4 ; i++){
+			terminal_putentryat(buf[i], color, i+col, row);
+		}
+		
+		if (++row == VGA_HEIGHT) {
+			row = 0;
+			if (++col == VGA_HEIGHT) col = 0;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
 	}
 }
 
-void pingus(){
-	terminal_clear();
+void sample2() {
 	uint8_t color = 0;
-	while (1) {
-    	char buf[18];
-    	addr_to_string(buf, (uintptr_t)color);
-		terminal_writestring(buf);
-    	// terminal_writestring("\n");  
+	uint8_t row = 0;
 
-		color++;
-		terminal_setcolor(color);
-		for (uint16_t i = 0; i < VGA_WIDTH-4; i++){
-			terminal_writestring(" ");
+	while (1) {
+    	char buf[5];
+    	addr_to_string(buf, (uintptr_t)color);
+		
+		for (uint8_t i = 4; i > 0 ; i--){
+			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
 		}
+		color++;
+		if (++row == VGA_HEIGHT) row = 0;
 		for (uint32_t i = 0xFFFFFFF; i > 0; i-- );
 	}
 }
 
-void tty(){
-	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
-	while(1){
-		if (terminal_color != vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK)) {
-			terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
-			terminal_clear();
-		} 
+void sample3() {
+	uint8_t color = 0;
+	uint8_t row = VGA_HEIGHT;
+
+	while (1) {
+    	char buf[8] = "       ";
+    	// addr_to_string(buf, (uintptr_t)color);
+		
+		for (uint8_t i = 7; i > 0 ; i--){
+			terminal_putentryat(buf[i], color, (VGA_WIDTH/2)+i, row);
+		}
+		if (--row == (uint8_t)-1) {
+			row = VGA_HEIGHT;
+			color += 0x10;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
 	}
 }
 
-#include <process/context_switch.h>
 // ----- Entry point -----
 void kernel_main() {
     init_terminal();
 	init_idt();
 	init_kb();
-	// init_pit(PIT_DIVISOR);
 	init_heap(HEAP_LOWER_BOUND);
-	enable_interrupts();
 
-	// context_switch((context_struct*)0xAAAA, (context_struct*)0xBBBB);
-	new_pid = init_process(&pingus, allocate(1000)+400);
-	new_pid2 = init_process(&terminal_backstop, allocate(1000)+400);
-	new_pid3 = init_process(&tty, allocate(1000)+400);
-	switch_process(new_pid3);
-	// init_process((void*)0xffffffff, allocate(1000));
+	init_process(&sample, allocate(500)+200, 0);
+	init_process(&sample2, allocate(500)+200, 0);
+	init_process(&sample3, allocate(500)+200, 0);
+
+	init_pit(PIT_DIVISOR);
+	enable_interrupts();
 	while(1);
 } 

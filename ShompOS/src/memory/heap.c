@@ -16,7 +16,7 @@ static void* current_brk = NULL;
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
 // returns: next power of 2, uint8_t
-uint8_t size_to_scale(uint32_t size) {
+inline uint8_t size_to_scale(uint32_t size) {
     // add the size of the required header to the request.
     size += sizeof(block_header);
     // scale = size rounded up to the nearest power of 2.
@@ -320,6 +320,7 @@ char* addr_to_string(char* buffer, uintptr_t addr) {
         digits++;
         temp >>= 4;
     }
+    if (digits == 1) digits++;
     
     // Write digits from most to least significant
     buffer[digits + 2] = '\0';  // +2 for "0x" prefix

@@ -66,8 +66,8 @@ syscall_handler:
     addl sys_table, %eax
     call *%eax
 
-# pushes all registers before calling C 
-# function. youtube man said to.
+# pushes all registers before calling C function. this is to prevent us from
+# losing our context when we return from the interrupt handler
 keyboard_handler:
     pushal
     cld
@@ -75,16 +75,13 @@ keyboard_handler:
     popal
     iret
 
+
 clock_handler:
-    #pushl
-    #pushl %cs
-    #pushl %eip
     pushal
     cld
     call handle_clock_interrupt
     popal
-    #ret
-    #iret
+    iret
 
 
 
