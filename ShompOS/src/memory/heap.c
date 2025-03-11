@@ -17,7 +17,7 @@ static void* current_brk = NULL;
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
 // returns: next power of 2, uint8_t
-uint8_t size_to_scale(uint32_t size) {
+inline uint8_t size_to_scale(uint32_t size) {
     // add the size of the required header to the request.
     size += sizeof(block_header);
     // scale = size rounded up to the nearest power of 2.
@@ -300,39 +300,40 @@ int8_t sbrk(int32_t inc) {
 }
 
 
-// // ----- FOR DEBUGGING ------
-// // stole from Claude
-// char* addr_to_string(char* buffer, uintptr_t addr) {
-//     const char hex_digits[] = "0123456789abcdef";
-//     buffer[0] = '0';
-//     buffer[1] = 'x';
+// ----- FOR DEBUGGING ------
+// stole from Claude
+char* addr_to_string(char* buffer, uintptr_t addr) {
+    const char hex_digits[] = "0123456789ABCDEF";
+    buffer[0] = '0';
+    buffer[1] = 'x';
     
-//     // Handle 0 specially
-//     if (addr == 0) {
-//         buffer[2] = '0';
-//         buffer[3] = '\0';
-//         return buffer;
-//     }
+    // Handle 0 specially
+    if (addr == 0) {
+        buffer[2] = '0';
+        buffer[3] = '\0';
+        return buffer;
+    }
     
-//     // Find first significant digit position
-//     int digits = 0;
-//     uintptr_t temp = addr;
-//     while (temp) {
-//         digits++;
-//         temp >>= 4;
-//     }
+    // Find first significant digit position
+    int digits = 0;
+    uintptr_t temp = addr;
+    while (temp) {
+        digits++;
+        temp >>= 4;
+    }
+    if (digits == 1) digits++;
     
-//     // Write digits from most to least significant
-//     buffer[digits + 2] = '\0';  // +2 for "0x" prefix
-//     int pos = digits + 1;       // Position to write next digit
+    // Write digits from most to least significant
+    buffer[digits + 2] = '\0';  // +2 for "0x" prefix
+    int pos = digits + 1;       // Position to write next digit
     
-//     while (addr) {
-//         buffer[pos--] = hex_digits[addr & 0xF];
-//         addr >>= 4;
-//     }
+    while (addr) {
+        buffer[pos--] = hex_digits[addr & 0xF];
+        addr >>= 4;
+    }
     
-//     return buffer;
-// }
+    return buffer;
+}
 
 // void print_free_counts(){
 //     terminal_writestring("free_block counts:\n");

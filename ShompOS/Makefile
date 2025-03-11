@@ -34,6 +34,8 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/ramfs.o \
 				$(OBJ_DIR)/ramfs_executables.o \
 				$(OBJ_DIR)/fake_libc.o \
+				$(OBJ_DIR)/process.o \
+				$(OBJ_DIR)/context_switch.o \
 				$(OBJ_DIR)/elf.o \
 				$(OBJ_DIR)/mnt.o
 

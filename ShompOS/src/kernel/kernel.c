@@ -1,10 +1,11 @@
 // kernel.c
 // Core functionality for the kernel
 // Cedarville University 2024-25 OSDev Team
+
 // IDT_SIZE: Specific to x86 architecture
-#define IDT_SIZE 256
+#define IDT_SIZE 0x100
 // EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
-#define EXCEPTIONS_SIZE 32
+#define EXCEPTIONS_SIZE 0x20
 // KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
 #define KERNEL_CODE_SEGMENT_OFFSET 0x8
 // 32-bit Interrupt gate: 0x8E
@@ -22,6 +23,13 @@
 // IO Ports for Keyboard
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_STATUS_PORT 0x64
+/// IO Ports for PIT
+#define PIT_CHANNEL_0_DATA_PORT 0x40
+#define PIT_COMMAND_MODE_PORT 0x43
+// PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
+// 0xFFFF results in around 18.3 Hz, the slowest possible with 16 bits
+#define PIT_DIVISOR 0xFFF
+
 
 // ----- experimental attempt to run commands
 #define CMD_MAX_LEN 64
@@ -29,8 +37,13 @@
 // ----- Includes -----
 #include <kernel/kernel.h>
 #include <kernel/boot.h>
+
 #include <fake_libc/fake_libc.h> // Is this still relevant?
+
 #include <memory/heap.h>
+
+#include <process/process.h>
+
 #include <IO/keyboard_map.h>
 #include <IO/keyboard_map_shift.h>
 #include <string.h>
@@ -41,13 +54,17 @@
 
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
-IDT_entry IDT[IDT_SIZE];
+IDT_entry IDT[IDT_SIZE]; 
+
+// --- output ---
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
 uint16_t* terminal_buffer;
+
+// --- input ---
 KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
@@ -68,7 +85,7 @@ ramfs_dir_t* system_root = NULL;
 
 
 // ----- Bare Bones -----
-enum vga_color {
+typedef enum {
 	VGA_COLOR_BLACK = 0,
 	VGA_COLOR_BLUE = 1,
 	VGA_COLOR_GREEN = 2,
@@ -85,9 +102,9 @@ enum vga_color {
 	VGA_COLOR_LIGHT_MAGENTA = 13,
 	VGA_COLOR_LIGHT_BROWN = 14,
 	VGA_COLOR_WHITE = 15,
-};
+} vga_color;
 
-static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg)
+static inline uint8_t vga_entry_color(vga_color fg, vga_color bg)
 {
 	return fg | bg << 4;
 }
@@ -166,6 +183,7 @@ void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
 }
+
 void kill_process() {
 	__asm__ volatile ("cli; hlt");
 }
@@ -173,6 +191,7 @@ void kill_process() {
 void terminal_clear() {
 	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
 		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+
 			terminal_putentryat(' ', terminal_color, x, y);
 		}
 	}
@@ -180,8 +199,22 @@ void terminal_clear() {
 	terminal_row = 0;
 }
 
+void terminal_refresh() {
+	for (uint8_t y = 0; y < VGA_HEIGHT; y++){
+		for (uint8_t x = 0; x < VGA_WIDTH; x++){
+			size_t index = y * VGA_WIDTH + x;
+			uint16_t oc = terminal_buffer[index];
+			terminal_putentryat(oc, terminal_color, x, y);
+		}	
+	} 
+}
+
+// void exception_handler(uint8_t num) {
 void exception_handler() {
 	terminal_writestring("Exception!");
+
+	// char c[3] = {(char)num+65, ' ', '\0'};
+	// terminal_writestring(c);
 	kill_process();
 }
 
@@ -193,19 +226,37 @@ void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 	IDT[interrupt_num].offset_upperbits = ((uint32_t)offset & 0xFFFF0000) >> 16;
 }
 
+void init_pit(uint32_t divisor) {
+    // Command byte: Channel 0, low/high byte, rate generator mode
+    ioport_out(PIT_COMMAND_MODE_PORT, 0x36);
+    
+    // Send divisor (low byte then high byte)
+    ioport_out(PIT_CHANNEL_0_DATA_PORT, divisor & 0xFF);
+    ioport_out(PIT_CHANNEL_0_DATA_PORT, (divisor >> 8) & 0xFF);
+
+	// Enable IRQ0 in the PIC
+    ioport_out(PIC1_DATA_PORT, ioport_in(0x21) & ~(1 << 0));
+}
+
+void handle_clock_interrupt() {
+	// clear interrupt; tells PIC we
+	// are handling it.
+	ioport_out(PIC1_COMMAND_PORT, 0x20);
+	
+	// terminal_writestring("clock");
+	switch_process_from_queue();
+	// __asm__ ("iret");
+}
 // ----- PageKey Video -----
 void init_idt() {
-	unsigned int offset;
-
 	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
-	offset = (unsigned int)syscall_handler;
-	idt_set_descriptor(0x80, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x80, (void*)syscall_handler,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x21, (void*)keyboard_handler,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x20, (void*)clock_handler, IDT_TRAP_GATE_32BIT);
 
-	offset = (unsigned int)keyboard_handler;
-	idt_set_descriptor(0x21, (void*)offset,  IDT_INTERRUPT_GATE_32BIT);
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
@@ -837,40 +888,69 @@ void handle_command(char* cmd) {
 }
 
 
+void sample() {
+	uint8_t row = 0;
+	uint8_t col = 0;
+	while(1){
+		uint8_t color = vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+		char buf[5] = "text";
+		
+		for (uint8_t i = 0; i < VGA_HEIGHT+4; i++){
+			terminal_putentryat(' ', color, i, row);
+		}
+		for (uint8_t i = 0; i < 4 ; i++){
+			terminal_putentryat(buf[i], color, i+col, row);
+		}
+		
+		if (++row == VGA_HEIGHT) {
+			row = 0;
+			if (++col == VGA_HEIGHT) col = 0;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
+	}
+}
+
+void sample2() {
+	uint8_t color = 0;
+	uint8_t row = 0;
+
+	while (1) {
+    	char buf[5];
+    	addr_to_string(buf, (uintptr_t)color);
+		
+		for (uint8_t i = 4; i > 0 ; i--){
+			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
+		}
+		color++;
+		if (++row == VGA_HEIGHT) row = 0;
+		for (uint32_t i = 0xFFFFFFF; i > 0; i-- );
+	}
+}
+
+void sample3() {
+	uint8_t color = 0;
+	uint8_t row = VGA_HEIGHT;
+
+	while (1) {
+    	char buf[8] = "       ";
+    	// addr_to_string(buf, (uintptr_t)color);
+		
+		for (uint8_t i = 7; i > 0 ; i--){
+			terminal_putentryat(buf[i], color, (VGA_WIDTH/2)+i, row);
+		}
+		if (--row == (uint8_t)-1) {
+			row = VGA_HEIGHT;
+			color += 0x10;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
+	}
+}
+
+// ----- Entry point -----
 void init_shell(ramfs_dir_t* root) {
     current_dir = root;
 }
 
-
-// // ----- Entry point -----
-// void kernel_main() {
-//     init_terminal();
-//     init_idt();
-//     init_kb();
-//     init_heap(HEAP_LOWER_BOUND);
-//     enable_interrupts();
-
-//     // Test RAMFS
-//     // test_ramfs();
-
-//     // Initialize RAMFS and shell
-//     ramfs_dir_t* root = ramfs_create_root();
-//     if (root) {
-//         // test_ramfs();
-//         init_shell(root);  // Initialize shell with root directory
-//         ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
-//         ramfs_dir_t* home = ramfs_create_dir(root, "home");
-//             const char *hello_data = "echo 'Hello, RAMFS!'\n";
-//             ramfs_file_t *hello = ramfs_create_file(root, "hello.sh",
-//                                                    hello_data,
-//                                                    strlen(hello_data) + 1);
-//     }
-
-//     while(1);
-// }
-
-// extern char _binary_inc_elf_newTest_start[];
-// extern char _binary_inc_elf_newTest_end[];
 
 void kernel_main() {
     // Initialize core systems
@@ -878,24 +958,27 @@ void kernel_main() {
     init_idt();
     init_kb();
     init_heap(HEAP_LOWER_BOUND);
+
     current_dir = system_root = init_fs();
 
     if (!current_dir) {
         terminal_writestring("Failed to initialize filesystem.");
         return;
     }
-
-    // Enable interrupts after all handlers are set up
-    enable_interrupts();
-
     // Initial terminal prompt
     terminal_writestring("ShompOS initialized successfully!\n");
     terminal_writestring("Type 'help' for available commands\n");
     terminal_writestring("shompOS> ");
 
+    init_process(&sample, allocate(500)+200, 0);
+    init_process(&sample2, allocate(500)+200, 0);
+    init_process(&sample3, allocate(500)+200, 0);
+
+    init_pit(PIT_DIVISOR);
+    enable_interrupts();
     // Main kernel loop
     while(1) {
         // CPU can enter low-power state here if desired
         __asm__ volatile("hlt");
     }
-}
+} 
