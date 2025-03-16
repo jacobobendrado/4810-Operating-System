@@ -2,7 +2,8 @@
 // functions that act as executables for the ramfs
 // Cedarville University 2024-25 OSDev Team
 
-#include <heap.h>       // For allocate, free
+#include <heap.h>       // For allocate(), free()
+#include <kernel.h>     // For terminal_writestring()
 #include <fake_libc.h>
 #include <ramfs.h>
 #include <string.h>

@@ -31,5 +31,6 @@ typedef struct _process_struct {
 
 
 processID init_process(void* entry_point, void* stack, processID parent_PID);
+void kill_process(processID PID);
 void switch_process(processID PID);
 void switch_process_from_queue();
