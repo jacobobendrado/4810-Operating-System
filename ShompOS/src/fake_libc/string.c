@@ -149,3 +149,11 @@ char *strchr(const char *s, int c) {
     }
     return NULL;
 }
+
+void *memset(void *ptr, int value, size_t num) {
+    unsigned char *p = ptr;
+    while (num--) {
+        *p++ = (unsigned char)value;
+    }
+    return ptr;
+}

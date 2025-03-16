@@ -149,6 +149,35 @@ void terminal_write(const char* data, size_t size)
 		}
 }
 
+void terminal_writeint(int num) {
+    char buffer[12];  // Buffer for storing the integer as a string (including negative sign and null terminator)
+    int i = 0;
+
+    // Handle the special case when the number is 0
+    if (num == 0) {
+        terminal_putchar('0');
+        return;
+    }
+
+    // Handle negative numbers
+    if (num < 0) {
+        terminal_putchar('-');
+        num = -num;  // Make the number positive for further processing
+    }
+
+    // Convert integer to string in reverse order
+    while (num > 0) {
+        buffer[i++] = (num % 10) + '0';  // Get the last digit and convert it to character
+        num /= 10;  // Remove the last digit
+    }
+
+    // Print the digits in reverse order
+    for (--i; i >= 0; i--) {
+        terminal_putchar(buffer[i]);  // Print each digit from the buffer
+    }
+}
+
+
 void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
@@ -443,6 +472,88 @@ void handle_div_by_zero() {
 	terminal_writestring("Div by zero!");
 }
 
+// Test the file descriptor functionality
+void test_fd_system(ramfs_dir_t *root) {
+    // Initialize the file descriptor system
+    ramfs_init_fd_system();
+    terminal_writestring("File descriptor system initialized\n");
+
+    // Create a test file
+    const char *test_data = "Hello, this is a test file!";
+    ramfs_file_t *test_file = ramfs_create_file(root, "test.txt", test_data, strlen(test_data));
+
+    if (!test_file) {
+        terminal_writestring("Failed to create test file\n");
+        return;
+    }
+
+    terminal_writestring("Created test file\n");
+
+    // Open the file
+    terminal_writestring("Attempting to open the file: /test.txt\n");
+    int fd = ramfs_open(root, "/test.txt", 0);
+    if (fd < 0) {
+        terminal_writestring("Failed to open test file\n");
+        return;
+    }
+
+    terminal_writestring("Opened file successfully with file descriptor: ");
+    terminal_writeint(fd); // You may need a `terminal_writeint` function to output the fd number
+    terminal_writestring("\n");
+
+    // Read from the file
+    char buffer[64];
+    memset(buffer, 0, sizeof(buffer));
+
+    ssize_t bytes_read = ramfs_read(fd, buffer, sizeof(buffer));
+    if (bytes_read < 0) {
+        terminal_writestring("Failed to read from file\n");
+        return;
+    }
+
+    terminal_writestring("Read from file: ");
+    terminal_writestring(buffer);
+    terminal_writestring("\n");
+
+    // Seek to the beginning of the file
+    if (ramfs_seek(fd, 0, SEEK_SET) < 0) {
+        terminal_writestring("Failed to seek in file\n");
+        return;
+    }
+
+    terminal_writestring("Seeked to beginning of file\n");
+
+    // Write to the file
+    const char *new_data = "Updated content!";
+    ssize_t bytes_written = ramfs_write(fd, new_data, strlen(new_data));
+    if (bytes_written < 0) {
+        terminal_writestring("Failed to write to file\n");
+        return;
+    }
+
+    terminal_writestring("Wrote to file successfully\n");
+
+    // Seek to the beginning of the file again
+    ramfs_seek(fd, 0, SEEK_SET);
+
+    // Read the updated content
+    memset(buffer, 0, sizeof(buffer));
+    bytes_read = ramfs_read(fd, buffer, sizeof(buffer));
+
+    terminal_writestring("Read updated content: ");
+    terminal_writestring(buffer);
+    terminal_writestring("\n");
+
+    // Close the file
+    if (ramfs_close(fd) < 0) {
+        terminal_writestring("Failed to close file\n");
+        return;
+    }
+
+    terminal_writestring("Closed file successfully\n");
+    terminal_writestring("File descriptor test completed\n");
+}
+
 
 // ----- Entry point -----
 void kernel_main() {
@@ -453,41 +564,10 @@ void kernel_main() {
 	enable_interrupts();
 
     ///////////// Test RAMFS
+    ramfs_init_fd_system();
+
     ramfs_dir_t* root = ramfs_create_root();
-    if (root) {
-        terminal_writestring("Creating directories...\n");
-        ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
-        if (bin) {
-            terminal_writestring("Created /bin directory\n");
-
-            // Create a test file in /bin
-            const char *hello_data = "echo 'Hello, RAMFS!'\n";
-            ramfs_file_t *hello = ramfs_create_file(bin, "hello.sh",
-                                                   hello_data,
-                                                   strlen(hello_data) + 1);
-            if (hello) {
-                terminal_writestring("Created file: /bin/hello.sh\n");
-                terminal_writestring("File contents: ");
-                terminal_writestring(hello->data);
-            }
-        }
-
-        ramfs_dir_t* home = ramfs_create_dir(root, "home");
-        if (home) {
-            terminal_writestring("Created /home directory\n");
-
-            // Create a test file in /home
-            const char *readme_data = "Welcome to your home directory!\n";
-            ramfs_file_t *readme = ramfs_create_file(home, "README.txt",
-                                                    readme_data,
-                                                    strlen(readme_data) + 1);
-            if (readme) {
-                terminal_writestring("Created file: /home/README.txt\n");
-                terminal_writestring("File contents: ");
-                terminal_writestring(readme->data);
-            }
-        }
-    }
+    test_fd_system(root);
     ///////////// Test RAMFS
 
 	while(1);
