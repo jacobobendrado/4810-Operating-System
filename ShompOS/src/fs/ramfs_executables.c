@@ -173,3 +173,27 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
 ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *dir_name) {
     return ramfs_find_dir(root, dir_name);
 }
+
+void ramfs_run(ramfs_dir_t *dir, const char *filename) {
+    if (!dir || !filename) return;
+
+    // Trim leading spaces
+    while (*filename == ' ') filename++;
+
+    // Find the file
+    ramfs_file_t* file = NULL;
+    for (size_t i = 0; i < dir->file_count; i++) {
+        if (strcmp(dir->files[i]->name, filename) == 0) {
+            file = dir->files[i];
+            break;
+        }
+    }
+
+    if (file) {
+        init_elf(file, 0);
+    } else {
+        terminal_writestring("File not found: ");
+        terminal_writestring(filename);
+        terminal_writestring("\n");
+    }
+}

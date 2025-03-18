@@ -880,6 +880,14 @@ void handle_command(char* cmd) {
         }
         
     }
+    else if (strcmp(cmd_name, "run") == 0) {
+        if (!args) {
+            terminal_writestring("Usage: rm <filename>\n");
+            return;
+        }
+        ramfs_run(current_dir, args);
+
+    }
     else if (cmd_name[0] != '\0') {
         terminal_writestring("Unknown command: ");
         terminal_writestring(cmd_name);

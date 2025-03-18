@@ -14,6 +14,7 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename);
 void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname);
 void ramfs_rm(ramfs_dir_t *dir, const char *filename);
 ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *filename);
+void ramfs_run(ramfs_dir_t *dir, const char *filename);
 
 
 #endif // RAMFS_EXECUTABLES_H

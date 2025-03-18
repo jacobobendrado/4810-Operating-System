@@ -8,7 +8,7 @@
 
 #define STACK_SIZE_DEFAULT 1000
 
-int init_elf(ramfs_file_t* f) {
+processID init_elf(ramfs_file_t* f, processID ppid) {
     int rc = is_readable(f);
     if (rc) {
         return ELF_ERROR;
@@ -18,22 +18,49 @@ int init_elf(ramfs_file_t* f) {
 
     Elf32_Phdr *pHeaders = f->data + elfHeader->e_phoff;
     void *textSpace; //TODO: figure out doing it with multiple parts
+    uint32_t size = 0;
+    Elf32_Addr min_vaddr = -1;
+
+    Elf32_Phdr *header = &pHeaders[0];
 
     // Read every program header
     for (int i = 0; i < elfHeader->e_phnum; i++) {
 
-        Elf32_Phdr *header = &pHeaders[i];
+        header = &pHeaders[i];
 
         // If LOAD,
-        if (header->p_type != PROGRAM_TYPE_LOAD) {
+        if (header->p_type != PROGRAM_TYPE_LOAD && header->p_memsz > 0) {
             continue;
         }
-    
-        // Allocate virtual memory for each segment (if gt 0)
-        textSpace = allocate(header->p_memsz);
 
-        if (!textSpace) {
-            return ELF_ERROR;
+        if (header->p_vaddr < min_vaddr) {
+            if (size > 0) {
+                size = size + (min_vaddr - header->p_vaddr);
+            }
+            else {
+                size = header->p_memsz;
+            }
+            min_vaddr = header->p_vaddr;
+        }
+
+        if (header->p_vaddr + header->p_memsz > min_vaddr + size) {
+            size = (header->p_vaddr + header->p_memsz) - min_vaddr;
+        }
+    }
+    
+    textSpace = allocate(size);
+
+    if (!textSpace) {
+        return ELF_ERROR;
+    }
+
+    for (int i = 0; i < elfHeader->e_phnum; i++) {
+
+        header = &pHeaders[i];
+
+        // If LOAD,
+        if (header->p_type != PROGRAM_TYPE_LOAD && header->p_memsz > 0) {
+            continue;
         }
     
         // Copy segment data from file
@@ -52,9 +79,7 @@ int init_elf(ramfs_file_t* f) {
     }
 
     //TODO: Integrate process
-    // return init_process(textSpace + elfHeader->e_entry - header->p_vaddr, stackSpace + STACK_SIZE_DEFAULT)
-
-    return 1;
+    return init_process(textSpace + elfHeader->e_entry - min_vaddr, stackSpace + STACK_SIZE_DEFAULT, ppid);
 }
 
 

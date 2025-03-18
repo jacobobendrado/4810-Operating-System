@@ -24,7 +24,7 @@ ISO_OUT = $(BUILD_DIR)/shompOS.iso
 
 # Flags
 # CFLAGS needs to know the subdirectories for includes
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I$(INC_DIR) -I$(INC_DIR)/elf -I$(INC_DIR)/fake_libc -I$(INC_DIR)/fs -I$(INC_DIR)/IO -I$(INC_DIR)/kernel -I$(INC_DIR)/memory -ggdb
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I$(INC_DIR) -I$(INC_DIR)/elf -I$(INC_DIR)/fake_libc -I$(INC_DIR)/fs -I$(INC_DIR)/process -I$(INC_DIR)/IO -I$(INC_DIR)/kernel -I$(INC_DIR)/memory -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \

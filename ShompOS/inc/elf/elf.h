@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include <ramfs.h>
+#include <process.h>
 
 /* Type for a 16-bit quantity. */
 typedef uint16_t Elf32_Half;
@@ -148,7 +149,7 @@ typedef struct
 #define NOT_ELF_FILE   2
 #define ELF_UNREADABLE 3
 
-int init_elf(ramfs_file_t* f);
+processID init_elf(ramfs_file_t* f, processID ppid);
 int is_readable(ramfs_file_t* f);
 
 
