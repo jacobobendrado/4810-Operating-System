@@ -71,12 +71,15 @@ typedef struct
   Elf32_Half	e_shstrndx;		/* Section header string table index */
 } Elf32_Ehdr;
 
-#define ELFCLASS32     1
+#define ELFCLASS32      1
 
-#define E_TYPE_EXEC    2
+#define E_TYPE_EXEC     2
 
-#define E_MACHINE_NONE 0
-#define E_MACHINE_386  3
+#define E_MACHINE_NONE  0
+#define E_MACHINE_386   3
+
+#define E_LITTLE_ENDIAN 1
+#define E_BIG_ENDIAN    2
 
 
 /* Section header. */
@@ -149,7 +152,13 @@ typedef struct
 #define NOT_ELF_FILE   2
 #define ELF_UNREADABLE 3
 
+// Reads and starts execution of ELF file.
+// Doesn't use virtual memory; rather, it allocates one
+// contiguous block for all loadable segments. This causes
+// issues with the .bss section.
 processID init_elf(ramfs_file_t* f, processID ppid);
+
+// Check if the file is readable. Returns 0 without error.
 int is_readable(ramfs_file_t* f);
 
 

@@ -75,7 +75,12 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
     }
 
     // Allocate and copy the data
-    new_file->data = allocate(size);
+    if (size == 0) {
+        new_file->data = allocate(1);
+    }
+    else {
+        new_file->data = allocate(size);
+    }
     if (!new_file->data) {
         void *name_ptr = new_file->name;
         void *file_ptr = new_file;

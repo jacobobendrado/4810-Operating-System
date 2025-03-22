@@ -17,13 +17,14 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
     Elf32_Ehdr *elfHeader = f->data;
 
     Elf32_Phdr *pHeaders = f->data + elfHeader->e_phoff;
-    void *textSpace; //TODO: figure out doing it with multiple parts
+    void *textSpace;
     uint32_t size = 0;
     Elf32_Addr min_vaddr = -1;
 
     Elf32_Phdr *header = &pHeaders[0];
 
-    // Read every program header
+    // Read every program header to determine what the lowest virtual address
+    // is and how much space is needed to be allocated
     for (int i = 0; i < elfHeader->e_phnum; i++) {
 
         header = &pHeaders[i];
@@ -47,7 +48,7 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
             size = (header->p_vaddr + header->p_memsz) - min_vaddr;
         }
     }
-    
+
     textSpace = allocate(size);
 
     if (!textSpace) {
@@ -62,7 +63,7 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
         if (header->p_type != PROGRAM_TYPE_LOAD && header->p_memsz > 0) {
             continue;
         }
-    
+
         // Copy segment data from file
         memcpy(textSpace, f->data + header->p_offset, header->p_filesz);
     
@@ -71,14 +72,13 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
 
     }
 
-    // Create stack?
+    // Create stack
     void *stackSpace = allocate(STACK_SIZE_DEFAULT);
     if (!stackSpace) {
         free(&textSpace);
         return ELF_ERROR;
     }
 
-    //TODO: Integrate process
     return init_process(textSpace + elfHeader->e_entry - min_vaddr, stackSpace + STACK_SIZE_DEFAULT, ppid);
 }
 
@@ -96,7 +96,10 @@ int is_readable(ramfs_file_t* f) {
         return ELF_UNREADABLE;
     }
 
-    //TODO: Endianness?
+    // Check for endianness; not certain if this is needed
+    if  (elfHeader->e_ident[5] != E_LITTLE_ENDIAN) {
+        return ELF_UNREADABLE;
+    }
 
     if (elfHeader->e_type != E_TYPE_EXEC) {
         return ELF_UNREADABLE;
