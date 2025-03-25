@@ -61,10 +61,25 @@ enable_interrupts:
 
 # handle syscalls
 syscall_handler:
-    pushal
-    sall $2, %eax
-    addl sys_table, %eax
+    pushf
+    cld
+    push %ebp
+    push %edi
+    push %esi
+    push %edx
+    push %ecx
+    push %ebx
+    leal (sys_table), %ebx
+    movl (%ebx, %eax, 4), %eax
     call *%eax
+    pop %ebx
+    pop %ecx
+    pop %edx
+    pop %esi
+    pop %edi
+    pop %ebp
+    popf
+    iret
 
 # pushes all registers before calling C function. this is to prevent us from
 # losing our context when we return from the interrupt handler

@@ -1,3 +1,7 @@
 
+.extern syscall_exit
+
 sys_table:
-    .space 1536
+    .long 0
+    .long syscall_exit
+    .space 1528

@@ -1,5 +1,5 @@
 
-#include <stdint.h>
+#include "syscalls.h"
 
 extern uint32_t do_syscall(const uint32_t eax, const uint32_t ebx, const uint32_t ecx, const uint32_t edx, const uint32_t esi, const uint32_t edi, const uint32_t ebp);
 
