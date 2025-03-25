@@ -675,7 +675,7 @@ void kernel_main() {
     ///////////// Test RAMFS
     ramfs_init_fd_system();
     // test_ramfs();
-    ramfs_dir_t* root = ramfs_create_root();
+    ramfs_dir_t* root = system_root = ramfs_create_root();
     //test_fd_system(root);
     init_stdio(root);
     current_dir = root;
