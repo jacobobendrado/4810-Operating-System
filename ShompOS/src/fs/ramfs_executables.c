@@ -7,6 +7,7 @@
 #include <ramfs.h>
 #include <string.h>
 #include <ramfs_executables.h>
+#include <kernel.h>
 
 void ramfs_pwd(ramfs_dir_t *dir) {
     if (!dir) return;
@@ -35,11 +36,11 @@ void ramfs_pwd(ramfs_dir_t *dir) {
         }
         temp = temp->parent;
     }
-
+    terminal_writestring("The current directory is: {");
     terminal_writestring(path);
-    terminal_writestring("\n");
+    terminal_writestring("}\n");
     void *path_ptr = path;
-    free(&path_ptr);
+    free(path_ptr);
 }
 
 void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname) {
@@ -168,4 +169,8 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
     } else {
         terminal_writestring("Failed to create file\n");
     }
+}
+
+ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *dir_name) {
+    return ramfs_find_dir(root, dir_name);
 }

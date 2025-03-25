@@ -27,4 +27,5 @@ typedef struct _KEY_state {
 } KEY_state;
 
 void terminal_writestring(const char* data);
+void terminal_writeint(int number);
 void terminal_clear();
