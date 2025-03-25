@@ -1,3 +1,11 @@
+/*
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o test syscalls.c
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o assembly.o syscalls.S
+cd ../home
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o test_syscalls.o test_syscalls.c
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o test_syscalls test_syscalls.o ../inc/test ../inc/assembly.o
+*/
+
 
 #include "syscalls.h"
 
