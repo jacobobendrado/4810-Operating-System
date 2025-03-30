@@ -39,6 +39,7 @@ inline uint8_t size_to_scale(uint32_t size) {
     // +--------------------+
 }
 
+
 // purpose: adds a memory block to the appropriate head of free_list and sets
 //          is_free to true
 // block: the block_header of the block to free
@@ -231,14 +232,20 @@ void* allocate(size_t request_size) {
 }
 
 // purpose: returns a previously allocated block of memory back into the
-//          available pool and clears the pointer.
+//          available pool.
 // data: a pointer to the first free byte after a block_header. (this should be
 //       the pointer returned by allocate().)
-void free(void** data){
+// returns: 0 on success, 1 on failure
+uint8_t free(void* data) {
 	// reject empty blocks
-    if (!data || !*data) return;
-    block_header* block = ((block_header*)*data)-1;
-	
+    if (!data) return 1;
+    block_header* block = (block_header*)data-1;
+	if ((block_header*)block->list.next != block || 
+        (block_header*)block->list.prev != block) {
+        terminal_writestring("\nBLOCK DATA CORRUPTED. failed to free");
+        return 1;
+    }
+
     // merge and free block
 	block = __blkmngr_coalesce_block(block);
     __blkmngr_add_to_free_list(block);
@@ -247,9 +254,7 @@ void free(void** data){
     // to shrink heap.
     void* block_end = (void*)block+(1<<MAX_BLOCK_SCALE);
     if (block->scale == MAX_BLOCK_SCALE && current_brk == block_end) sbrk(-1);
-
-    // clear pointer
-    *data = NULL;
+    return 0;
 }
 
 // purpose: moves the current_brk according to the provided address. 
@@ -303,7 +308,7 @@ int8_t sbrk(int32_t inc) {
 // ----- FOR DEBUGGING ------
 // stole from Claude
 char* addr_to_string(char* buffer, uintptr_t addr) {
-    const char hex_digits[] = "0123456789ABCDEF";
+    char hex_digits[] = "0123456789ABCDEF";
     buffer[0] = '0';
     buffer[1] = 'x';
     
@@ -335,27 +340,27 @@ char* addr_to_string(char* buffer, uintptr_t addr) {
     return buffer;
 }
 
-// void print_free_counts(){
-//     terminal_writestring("free_block counts:\n");
-//     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
-//         uint32_t count = 0;
-//         list_header* curr = &free_list[i];
-//         while (curr->next != curr)
-//         {
-//             count++;
-//             curr = curr->next;
-//         }
-//         char c[2] = {(char)count+48, '\0'};
-//         char c2[2] = {i==10 ? 'A' : (char)i+48, '\0'};
-//         terminal_writestring(c);
-//         terminal_writestring(" free blocks of scale ");
-//         terminal_writestring(c2);
-//         terminal_writestring("\n");  
-//     } 
-//     char buf[18];
-//     addr_to_string(buf, (uintptr_t)current_brk);
-//     terminal_writestring("brk at ");
-//     terminal_writestring(buf);
-//     terminal_writestring("\n");  
-// }
+void print_free_counts(){
+    terminal_writestring("free_block counts:\n");
+    for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
+        uint32_t count = 0;
+        list_header* curr = &free_list[i];
+        while (curr->next != curr)
+        {
+            count++;
+            curr = curr->next;
+        }
+        char c[2] = {(char)count+48, '\0'};
+        char c2[2] = {i>=10 ? (char)i+'A'-10 : (char)i+'0', '\0'};
+        terminal_writestring(c);
+        terminal_writestring(" free blocks of scale ");
+        terminal_writestring(c2);
+        terminal_writestring("\n");  
+    } 
+    char buf[18];
+    addr_to_string(buf, (uintptr_t)current_brk);
+    terminal_writestring("brk at ");
+    terminal_writestring(buf);
+    terminal_writestring("\n");  
+}
 

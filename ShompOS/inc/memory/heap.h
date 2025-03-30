@@ -21,7 +21,7 @@ typedef struct _block_header {
 
 void init_heap();
 void* allocate(size_t request_size);
-void free(void** block_ptr);
+uint8_t free(void* data);
 int8_t brk(void* addr);
 int8_t sbrk(int32_t inc);
 

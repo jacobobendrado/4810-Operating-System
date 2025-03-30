@@ -585,6 +585,10 @@ void handle_keyboard_interrupt() {
             terminal_writestring("shompOS> ");
             return;
         }
+                // Handle enter key - process command
+        else if (keyboard_map[(uint8_t)keycode] == 'p') {
+            print_free_counts();
+        }
         // Handle backspace (scan code 0x0E)
         else if (keycode == 0x0E) {
             if (cmd_pos > 0) {
@@ -617,6 +621,7 @@ void handle_keyboard_interrupt() {
     }
 }
 
+// ===== SAMPLE PROCESSES =====
 void sample() {
 	uint8_t row = 0;
 	uint8_t col = 0;
@@ -675,22 +680,35 @@ void sample3() {
 	}
 }
 
-// ----- Entry point -----
-void init_shell(ramfs_dir_t* root) {
-    current_dir = root;
-}
-
 void test_jump() {
     terminal_writestring("before wait\n");
-    for (uint32_t i = 0x009FFFFF; i > 0; i-- ){
+    for (uint32_t i = 0x00FFFFFF; i > 0; i-- ){
         uint8_t color = i;
         terminal_putentryat('X', color, i%5, terminal_row);
     }
     terminal_writestring("\nafter wait... returning\n");
 }
+// ===== END SAMPLE PROCESSES =====
 
 void terminal_backstop() {
-    while(1);
+    terminal_clear();
+    terminal_writestring("  <- if this guy is blinking, all other processes have exited.");
+    uint8_t colors[2];
+    colors[0] = vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    colors[1] = vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_BLACK);
+
+    uint8_t idx = 0;
+    while(1){
+        terminal_writestring("");
+        terminal_putentryat('X', colors[idx], 0, 0);
+        idx = (idx+1)%2;
+        for (uint32_t i = 0x1FFFFFFF; i > 0; i--);
+    };
+}
+
+// ----- Entry point -----
+void init_shell(ramfs_dir_t* root) {
+    current_dir = root;
 }
 
 void kernel_main() {
@@ -709,20 +727,21 @@ void kernel_main() {
     // Initial terminal prompt
     terminal_writestring("ShompOS initialized successfully!\n");
     terminal_writestring("Type 'help' for available commands\n");
-    // terminal_writestring("shompOS> ");
+    terminal_writestring("shompOS> ");
 
-    // init_process(&sample, allocate(500)+200, 0);
-    init_process(&sample2, allocate(500)+200, 0);
-    init_process(&sample3, allocate(500)+200, 0);
-    init_process(&test_jump, allocate(500)+200, 0);
+    void* ap = allocate(500);
+    void* ap2 = allocate(500);
+    void* ap3 = allocate(500);
+
+    init_process(&terminal_backstop, ap);
+    init_process(&sample2, ap2);
+    init_process(&sample3, ap3);
+    init_process(&test_jump, allocate(500));
 
 
     init_pit(PIT_DIVISOR);
     enable_interrupts();
 
     // Main kernel loop
-    while(1) {
-        // CPU can enter low-power state here if desired
-        __asm__ volatile("hlt");
-    }
+    while(1);
 } 
