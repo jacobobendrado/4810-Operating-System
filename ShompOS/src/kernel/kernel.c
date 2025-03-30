@@ -292,12 +292,10 @@ void handle_keyboard_interrupt() {
     unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
     if (status & 0x1) {
         char keycode = ioport_in(KEYBOARD_DATA_PORT);
-
         // Handle special keys
         if((uint8_t)keycode == 0xE0 || (uint8_t)keycode == 224) {
             keycode = ioport_in(KEYBOARD_DATA_PORT);
         }
-
         // Handle modifier keys
         if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
             keycode == 0x36 || (uint8_t)keycode == 0xB6) {
@@ -316,19 +314,17 @@ void handle_keyboard_interrupt() {
             special_key_state.caps = 1 - special_key_state.caps;
             return;
         }
-
         // Ignore key releases
         if ((uint8_t)keycode > 127) return;
-
         // Handle enter key - process command
         if (keyboard_map[(uint8_t)keycode] == '\n') {
             cmd_buffer[cmd_pos] = '\0';
+            ramfs_write(STDIN_FILENO, '\n', 1);
+            ramfs_write(STDOUT_FILENO, '\n', 1); // Not working
             terminal_putchar('\n');
-
             if (current_dir && cmd_pos > 0) {
                 handle_command(cmd_buffer);
             }
-
             cmd_pos = 0;
             terminal_writestring("shompOS> ");
             return;
@@ -348,7 +344,6 @@ void handle_keyboard_interrupt() {
         // Add character to command buffer
         else if (cmd_pos < CMD_MAX_LEN - 1) {
             char c = keyboard_map[(uint8_t)keycode];
-
             if (c >= 'a' && c <= 'z') {
                 if ((special_key_state.shift ^ special_key_state.caps) == 1) {
                     c -= 32;
@@ -356,104 +351,14 @@ void handle_keyboard_interrupt() {
             } else if (special_key_state.shift) {
                 c = keyboard_map_shift[(uint8_t)keycode];
             }
-
             if (c >= 32 && c <= 126) {  // Only printable characters
                 cmd_buffer[cmd_pos++] = c;
-                terminal_putchar(c);
+                ramfs_write(STDIN_FILENO, &c, 1);
+                ramfs_write(STDOUT_FILENO, &c, 1);
             }
         }
     }
 }
-
-// char handle_keyboard_interrupt() {
-//     ioport_out(PIC1_COMMAND_PORT, 0x20);
-//     unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
-//     if (status & 0x1) {
-//         char keycode = ioport_in(KEYBOARD_DATA_PORT);
-
-//         // Handle special keys
-//         if ((uint8_t)keycode == 0xE0 || (uint8_t)keycode == 224) {
-//             keycode = ioport_in(KEYBOARD_DATA_PORT);
-//         }
-
-//         // Handle modifier keys
-//         if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
-//             keycode == 0x36 || (uint8_t)keycode == 0xB6) {
-//             special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
-//             return 0;  // Return 0 to indicate no character input
-//         }
-//         else if (keycode == 0x38 || (uint8_t)keycode == 0xB8) {
-//             special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
-//             return 0;  // Return 0 to indicate no character input
-//         }
-//         else if (keycode == 0x1D || (uint8_t)keycode == 0x9D) {
-//             special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
-//             return 0;  // Return 0 to indicate no character input
-//         }
-//         else if (keycode == 0x3A) {
-//             special_key_state.caps = 1 - special_key_state.caps;
-//             return 0;  // Return 0 to indicate no character input
-//         }
-
-//         // Ignore key releases
-//         if ((uint8_t)keycode > 127) return 0; // Ignore release key codes
-
-//         // Handle enter key
-//         if (keyboard_map[(uint8_t)keycode] == '\n') {
-//             cmd_buffer[cmd_pos] = '\0';
-//             terminal_putchar('\n');
-
-//             ramfs_write(STDOUT_FILENO, "\n", 1);
-
-//             if (current_dir && cmd_pos > 0) {
-//                 handle_command(cmd_buffer);
-//             }
-
-//             cmd_pos = 0;
-//             terminal_writestring("shompOS> ");
-//             return '\n'; // Return newline character
-//         }
-
-//         // Handle backspace
-//         else if (keycode == 0x0E) {
-//             if (cmd_pos > 0) {
-//                 cmd_pos--;
-//                 if (terminal_column > strlen("shompOS> ")) {
-//                     terminal_column--;
-//                     terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
-//                     terminal_buffer[terminal_row * VGA_WIDTH + terminal_column] = vga_entry(' ', terminal_color);
-//                 }
-//             }
-//             return 0; // Return 0 to indicate no character input
-//         }
-
-//         // Handle regular characters
-//         else if (cmd_pos < CMD_MAX_LEN - 1) {
-//             char c = keyboard_map[(uint8_t)keycode];
-
-//             if (c >= 'a' && c <= 'z') {
-//                 if ((special_key_state.shift ^ special_key_state.caps) == 1) {
-//                     c -= 32;  // Convert to uppercase if shift or caps lock is on
-//                 }
-//             } else if (special_key_state.shift) {
-//                 c = keyboard_map_shift[(uint8_t)keycode];
-//             }
-
-//             if (c >= 32 && c <= 126) {  // Only printable characters
-//                 cmd_buffer[cmd_pos++] = c;
-
-//                 ramfs_write(STDIN_FILENO, &c, 1);
-//                 ramfs_write(STDOUT_FILENO, &c, 1);
-
-//                 // Return the character typed
-//                 return c;
-//             }
-//         }
-//     }
-
-//     return 0; // Return 0 if no valid key was processed
-// }
-
 
 // test_ramfs function in kernel.c
 void test_ramfs() {
@@ -764,17 +669,10 @@ void kernel_main() {
 
     ///////////// Test RAMFS
     ramfs_init_fd_system();
-    // test_ramfs();
     ramfs_dir_t* root = system_root = ramfs_create_root();
-    //test_fd_system(root);
     current_dir = root;
     init_stdio(root);
 
-    //     if (!current_dir) {
-    //         terminal_writestring("Failed to initialize filesystem.");
-    //         return;
-    //     }
-    // test_keyboard_input();
     ///////////// Test RAMFS
 
 	while(1);

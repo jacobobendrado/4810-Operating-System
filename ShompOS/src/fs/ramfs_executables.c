@@ -112,6 +112,8 @@ void ramfs_ls(ramfs_dir_t *dir) {
     for (size_t i = 0; i < dir->file_count; i++) {
         terminal_writestring("[FILE] ");
         terminal_writestring(dir->files[i]->name);
+        terminal_writestring("    size:");
+        terminal_writeint(dir->files[i]->size);
         terminal_writestring("\n");
     }
 }

@@ -350,7 +350,7 @@ ssize_t ramfs_read(int fd, void *buf, size_t count) {
     }
 
     if (fd == STDIN_FILENO) {
-        terminal_writestring("Bingus?");
+        handle_keyboard_interrupt();
         return -1; // Placeholder for keyboard input handling
     }
 
@@ -524,94 +524,6 @@ int ramfs_close(int fd) {
     return 0;
 }
 
-// int init_stdio(ramfs_dir_t *root) {
-//     // Create special files for stdin, stdout, stderr
-//     ramfs_dir_t* dev = ramfs_create_dir(root, "dev");
-//     const char* data = "Sample Data.\n";
-//     ramfs_file_t *stdin_file = ramfs_create_file(dev, "stdin", data, strlen(data) + 1);
-//     ramfs_file_t *stdout_file = ramfs_create_file(dev, "stdout", data, strlen(data) + 1);
-//     ramfs_file_t *stderr_file = ramfs_create_file(dev, "stderr", data, strlen(data) + 1);
-//     ramfs_file_t *tty = ramfs_create_file(dev, "tty", "", 1);
-
-
-//     if (!stdin_file || !stdout_file || !stderr_file)
-//         return -1;
-
-//     // Allocate and initialize stdin
-//     fd_table[STDIN_FILENO] = allocate(sizeof(ramfs_fd_t));
-//     if (!fd_table[STDIN_FILENO]) goto fail;
-//     fd_table[STDIN_FILENO]->fd = STDIN_FILENO;
-//     fd_table[STDIN_FILENO]->file = stdin_file;
-//     fd_table[STDIN_FILENO]->position = 0;
-//     fd_table[STDIN_FILENO]->flags = O_RDONLY;
-
-//     // Allocate and initialize stdout
-//     fd_table[STDOUT_FILENO] = allocate(sizeof(ramfs_fd_t));
-//     if (!fd_table[STDOUT_FILENO]) goto fail;
-//     fd_table[STDOUT_FILENO]->fd = STDOUT_FILENO;
-//     fd_table[STDOUT_FILENO]->file = stdout_file;
-//     fd_table[STDOUT_FILENO]->position = 0;
-//     fd_table[STDOUT_FILENO]->flags = O_WRONLY;
-
-//     // Allocate and initialize stderr
-//     fd_table[STDERR_FILENO] = allocate(sizeof(ramfs_fd_t));
-//     if (!fd_table[STDERR_FILENO]) goto fail;
-//     fd_table[STDERR_FILENO]->fd = STDERR_FILENO;
-//     fd_table[STDERR_FILENO]->file = stderr_file;
-//     fd_table[STDERR_FILENO]->position = 0;
-//     fd_table[STDERR_FILENO]->flags = O_WRONLY;
-
-//     // TTY
-//     fd_table[STDIN_FILENO]->file = tty;
-
-
-//     fd_count = 3;
-//     return 0;
-
-// fail:
-//     free(&fd_table[STDIN_FILENO]);
-//     free(&fd_table[STDOUT_FILENO]);
-//     free(&fd_table[STDERR_FILENO]);
-//     return -1;
-// }
-
-// int init_stdio(ramfs_dir_t *root) {
-//     // Create special files for stdin, stdout, stderr
-//     ramfs_file_t *stdin_file = ramfs_create_file(root, "stdin", "", 0);
-//     ramfs_file_t *stdout_file = ramfs_create_file(root, "stdout", "", 0);
-//     ramfs_file_t *stderr_file = ramfs_create_file(root, "stderr", "", 0);
-
-//     if (!stdin_file || !stdout_file || !stderr_file)
-//         return -1;
-
-//     int in = ramfs_open(root, "stdin", O_RDONLY);
-//     int out = ramfs_open(root, "stdout", O_RDONLY);
-//     int err = ramfs_open(root, "stderr", O_RDONLY);
-
-//     terminal_writeint(in);
-//     terminal_writestring("\n");
-
-//     // Create dummy file
-//     ramfs_file_t *dummy_file = ramfs_create_file(root, "dummy", "", 0);
-//     int dummy_fd = ramfs_open(root, "dummy", O_RDWR | O_APPEND);
-//     terminal_writeint(dummy_fd);
-//     terminal_writestring("\n");
-
-//     // Write to dummy file
-//     const char* data = "Sample Data.\n";
-//     ramfs_write(dummy_fd, data, strlen(data));
-
-//     // Read from dummy file with a proper buffer
-//     char read_data[20] = {0}; // Allocate a buffer
-//     int r = ramfs_read(dummy_fd, read_data, sizeof(read_data) - 1);
-//     read_data[r] = '\0'; // Ensure null termination
-
-//     terminal_writeint(r);
-//     terminal_writestring(read_data);
-
-//     return 0;
-// }
-
 int init_stdio(ramfs_dir_t *root) {
     // Create special files for stdin, stdout, stderr with size 0
     ramfs_file_t *stdin_file = ramfs_create_file(root, "stdin", "", 0);
@@ -620,7 +532,7 @@ int init_stdio(ramfs_dir_t *root) {
     if (!stdin_file || !stdout_file || !stderr_file)
         return -1;
 
-    int in = ramfs_open(root, "stdin", O_RDONLY);
+    int in = ramfs_open(root, "stdin", O_RDWR | O_APPEND);
     int out = ramfs_open(root, "stdout", O_WRONLY);
     int err = ramfs_open(root, "stderr", O_WRONLY);
 
