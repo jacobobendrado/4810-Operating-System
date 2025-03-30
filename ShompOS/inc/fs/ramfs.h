@@ -22,6 +22,7 @@
 #define O_RDONLY 0x0001
 #define O_WRONLY 0x0002
 #define O_RDWR   0x0003
+#define O_APPEND 0x0004
 
 #ifndef _SSIZE_T_DEFINED
 typedef long ssize_t;
