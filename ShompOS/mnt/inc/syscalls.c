@@ -1,9 +1,9 @@
 /*
-~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o test syscalls.c
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o syscalls.o syscalls.c
 ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o assembly.o syscalls.S
 cd ../home
 ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o test_syscalls.o test_syscalls.c
-~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o test_syscalls test_syscalls.o ../inc/test ../inc/assembly.o
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o test_syscalls test_syscalls.o ../inc/syscalls.o ../inc/assembly.o
 */
 
 
@@ -21,4 +21,12 @@ uint32_t read(uint32_t fd, char *buf, uint32_t count) {
 
 uint32_t write(uint32_t fd, const char *buf, uint32_t count) {
     do_syscall(4, fd, buf, count, 0, 0, 0);
+}
+
+uint32_t open(const char *filename, int flags, uint32_t mode) {
+    do_syscall(5, filename, flags, mode, 0, 0, 0);
+}
+
+uint32_t close(uint32_t fd) {
+    do_syscall(6, fd, 0, 0, 0, 0, 0);
 }

@@ -19,5 +19,4 @@ do_syscall:
     pop %esi
     pop %edi
     pop %ebp
-    leave
     ret
