@@ -1,3 +1,6 @@
+# syscall_table.S
+# Table of syscall function pointers
+# Cedarville University 2024-25 OSDev Team
 
 .extern syscall_exit
 
