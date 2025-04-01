@@ -1,3 +1,5 @@
+// ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o greeting hello.o hi.o
+
 #ifndef GREETING_H
 #define GREETING_H
 

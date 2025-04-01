@@ -1,11 +1,18 @@
+// ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -fPIE -c -o hello.o hello.c
+
 #include "greeting.h"
 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
-size_t terminal_row;
-size_t terminal_column;
-uint8_t terminal_color;
-uint16_t* terminal_buffer;
+
+// The option -fPIE will lead to global variables being loaded at places offset by a table, so 
+// we need to make sure that they go there instead of the .bss section. More research might help
+// determine how to make .bss section dynamic as well. Initializing them puts them in .data
+// instead of .bss.
+size_t terminal_row = -1;
+size_t terminal_column = -1;
+uint8_t terminal_color = -1;
+uint16_t* terminal_buffer = 0xffff;
 
 // ----- Bare Bones -----
 enum vga_color {
@@ -45,6 +52,13 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
+void init_terminal(void) {
+	terminal_row = 0;
+	terminal_column = 0;
+	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+	terminal_buffer = (uint16_t*) 0xB8000;
+}
+
 void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 {
 	const size_t index = y * VGA_WIDTH + x;
@@ -79,9 +93,7 @@ void terminal_setcolor(uint8_t color)
 void terminal_putchar(char c)
 {
     if (c == '\n') {
-		char* term = "shompOS>";
 		terminal_advance_row();
-		terminal_writestring(term);
 	} else {
 		terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
 		if (++terminal_column == VGA_WIDTH) {
@@ -108,6 +120,7 @@ void terminal_writestring(const char* data)
 }
 
 int main() {
+    init_terminal();
     hello();
     hi();
     return 1;

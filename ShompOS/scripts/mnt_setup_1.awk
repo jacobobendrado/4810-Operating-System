@@ -1,4 +1,5 @@
 BEGIN {
+    print "// AUTO-GENERATED FILE. DO NOT EDIT."
     print "#include <ramfs.h>"
 }
 
