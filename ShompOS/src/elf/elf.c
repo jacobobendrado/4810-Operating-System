@@ -3,6 +3,7 @@
 // Cedarville University 2024-25 OSDev Team
 
 #include <elf.h>
+#include <ramfs.h>
 #include <heap.h>
 #include <string.h>
 
@@ -14,9 +15,10 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
         return ELF_ERROR;
     }
 
-    Elf32_Ehdr *elfHeader = f->data;
+    Elf32_Ehdr *elfHeader = (Elf32_Ehdr*)f->data;
 
-    Elf32_Phdr *pHeaders = f->data + elfHeader->e_phoff;
+
+    Elf32_Phdr *pHeaders = (Elf32_Phdr*)f->data + elfHeader->e_phoff;
     void *textSpace;
     uint32_t size = 0;
     Elf32_Addr min_vaddr = -1;
@@ -84,7 +86,7 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
 
 
 int is_readable(ramfs_file_t* f) {
-    Elf32_Ehdr *elfHeader = f->data;
+    Elf32_Ehdr *elfHeader = (Elf32_Ehdr*)f->data;
     if (elfHeader->e_ident[0] != '\x7F' ||
            elfHeader->e_ident[1] != 'E' ||
            elfHeader->e_ident[2] != 'L' ||

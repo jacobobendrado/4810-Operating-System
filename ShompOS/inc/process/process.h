@@ -22,14 +22,14 @@ typedef struct _process_struct {
     context_struct context;
     processID PID;
     process_status status;
-    void* enty_point;
-    struct _process_struct* parent_process;
+    void* entry_point;
     uint32_t wait_time;
     // uint8_t max_fd;
     // file_descriptor* fd_list;
 } process_struct;
 
 
-processID init_process(void* entry_point, void* stack, processID parent_PID);
+processID init_process(void* entry_point, void* stack);
+void kill_process(processID PID);
 void switch_process(processID PID);
 void switch_process_from_queue();
