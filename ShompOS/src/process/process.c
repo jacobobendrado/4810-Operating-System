@@ -66,7 +66,6 @@ void kill_process(processID PID) {
         proc->status = STOPPED;
 
         void* stack = proc->context.stack_bottom;
-        terminal_writestring((char*)stack);
         free(stack);
     }
 }

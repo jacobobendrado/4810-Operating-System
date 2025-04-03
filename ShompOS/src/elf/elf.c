@@ -9,16 +9,17 @@
 
 #define STACK_SIZE_DEFAULT 1000
 
-processID init_elf(ramfs_file_t* f, processID ppid) {
+processID init_elf(ramfs_file_t* f) {
     int rc = is_readable(f);
     if (rc) {
         return ELF_ERROR;
     }
 
+
     Elf32_Ehdr *elfHeader = (Elf32_Ehdr*)f->data;
 
 
-    Elf32_Phdr *pHeaders = (Elf32_Phdr*)f->data + elfHeader->e_phoff;
+    Elf32_Phdr *pHeaders = (Elf32_Phdr*)(f->data + elfHeader->e_phoff);
     void *textSpace;
     uint32_t size = 0;
     Elf32_Addr min_vaddr = -1;
@@ -77,11 +78,11 @@ processID init_elf(ramfs_file_t* f, processID ppid) {
     // Create stack
     void *stackSpace = allocate(STACK_SIZE_DEFAULT);
     if (!stackSpace) {
-        free(&textSpace);
+        free(textSpace);
         return ELF_ERROR;
     }
 
-    return init_process(textSpace + elfHeader->e_entry - min_vaddr, stackSpace + STACK_SIZE_DEFAULT, ppid);
+    return init_process(textSpace + elfHeader->e_entry - min_vaddr, stackSpace);
 }
 
 
