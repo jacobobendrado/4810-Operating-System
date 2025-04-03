@@ -40,7 +40,7 @@ ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name) {
     ramfs_dir_t **new_subdirs = allocate((parent->subdir_count + 1) * sizeof(ramfs_dir_t*));
     if (!new_subdirs) {
         void *dir_ptr = new_dir;
-        free(&dir_ptr);
+        free(dir_ptr);
         return NULL;
     }
 
@@ -48,7 +48,7 @@ ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name) {
     if (parent->subdirs) {
         memcpy(new_subdirs, parent->subdirs, parent->subdir_count * sizeof(ramfs_dir_t*));
         void *old_subdirs = parent->subdirs;
-        free(&old_subdirs);
+        free(old_subdirs);
     }
 
     // Add new directory
@@ -70,7 +70,7 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
     new_file->name = strdup(name);
     if (!new_file->name) {
         void *file_ptr = new_file;
-        free(&file_ptr);
+        free(file_ptr);
         return NULL;
     }
 
@@ -84,8 +84,8 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
     if (!new_file->data) {
         void *name_ptr = new_file->name;
         void *file_ptr = new_file;
-        free(&name_ptr);
-        free(&file_ptr);
+        free(name_ptr);
+        free(file_ptr);
         return NULL;
     }
     memcpy(new_file->data, data, size);
@@ -97,9 +97,9 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
         void *name_ptr = new_file->name;
         void *data_ptr = new_file->data;
         void *file_ptr = new_file;
-        free(&name_ptr);
-        free(&data_ptr);
-        free(&file_ptr);
+        free(name_ptr);
+        free(data_ptr);
+        free(file_ptr);
         return NULL;
     }
 
@@ -107,7 +107,7 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
     if (dir->files) {
         memcpy(new_files, dir->files, dir->file_count * sizeof(ramfs_file_t*));
         void *old_files = dir->files;
-        free(&old_files);
+        free(old_files);
     }
 
     // Add new file
@@ -137,9 +137,9 @@ void ramfs_delete_file(ramfs_dir_t *dir, const char *name) {
     void *name_ptr = dir->files[file_idx]->name;
     void *data_ptr = dir->files[file_idx]->data;
     void *file_ptr = dir->files[file_idx];
-    free(&name_ptr);
-    free(&data_ptr);
-    free(&file_ptr);
+    free(name_ptr);
+    free(data_ptr);
+    free(file_ptr);
 
     // If it's not the last file, shift remaining files left
     if (file_idx < dir->file_count - 1) {
@@ -154,13 +154,13 @@ void ramfs_delete_file(ramfs_dir_t *dir, const char *name) {
         if (new_files) {
             memcpy(new_files, dir->files, (dir->file_count - 1) * sizeof(ramfs_file_t*));
             void *old_files = dir->files;
-            free(&old_files);
+            free(old_files);
             dir->files = new_files;
         }
     } else {
         // If it was the only file, just free the array
         void *files_ptr = dir->files;
-        free(&files_ptr);
+        free(files_ptr);
         dir->files = NULL;
     }
 
@@ -198,7 +198,7 @@ ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path) {
         // If directory not found, clean up and return NULL
         if (!found) {
             void *path_ptr = path_copy;
-            free(&path_ptr);
+            free(path_ptr);
             return NULL;
         }
 
@@ -207,7 +207,7 @@ ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path) {
     }
 
     void *path_ptr = path_copy;
-    free(&path_ptr);
+    free(path_ptr);
     return current;
 }
 

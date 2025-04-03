@@ -245,7 +245,7 @@ void handle_clock_interrupt() {
 	
 	// terminal_writestring("clock");
 	switch_process_from_queue();
-	// __asm__ ("iret");
+
 }
 // ----- PageKey Video -----
 void init_idt() {

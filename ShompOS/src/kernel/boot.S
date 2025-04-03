@@ -92,10 +92,12 @@ keyboard_handler:
 
 
 clock_handler:
+    cli
     pushal
     cld
     call handle_clock_interrupt
     popal
+    sti
     iret
 
 

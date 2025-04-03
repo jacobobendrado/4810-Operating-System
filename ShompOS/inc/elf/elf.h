@@ -156,7 +156,7 @@ typedef struct
 // Doesn't use virtual memory; rather, it allocates one
 // contiguous block for all loadable segments. This causes
 // issues with the .bss section.
-processID init_elf(ramfs_file_t* f, processID ppid);
+processID init_elf(ramfs_file_t* f);
 
 // Check if the file is readable. Returns 0 without error.
 int is_readable(ramfs_file_t* f);

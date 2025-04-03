@@ -40,7 +40,7 @@ void ramfs_pwd(ramfs_dir_t *dir) {
     terminal_writestring(path);
     terminal_writestring("\n");
     void *path_ptr = path;
-    free(&path_ptr);
+    free(path_ptr);
 }
 
 void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname) {
@@ -191,7 +191,7 @@ void ramfs_run(ramfs_dir_t *dir, const char *filename) {
     }
 
     if (file) {
-        init_elf(file, 0);
+        init_elf(file);
     } else {
         terminal_writestring("File not found: ");
         terminal_writestring(filename);
