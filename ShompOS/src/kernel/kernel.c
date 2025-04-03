@@ -666,14 +666,10 @@ void kernel_main() {
 	init_kb();
 	init_heap(HEAP_LOWER_BOUND);
 	enable_interrupts();
-
-    ///////////// Test RAMFS
     ramfs_init_fd_system();
     ramfs_dir_t* root = system_root = ramfs_create_root();
     current_dir = root;
     init_stdio(root);
-
-    ///////////// Test RAMFS
 
 	while(1);
 }

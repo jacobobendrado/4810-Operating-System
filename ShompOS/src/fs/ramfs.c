@@ -371,55 +371,6 @@ ssize_t ramfs_read(int fd, void *buf, size_t count) {
 }
 
 
-
-// // Write to a file using a file descriptor
-// ssize_t ramfs_write(int fd, const void *buf, size_t count) {
-//     if (fd < 0 || fd >= MAX_FDS || fd_table[fd] == NULL) {
-//         return -1; // Invalid file descriptor
-//     }
-
-//     if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-//         // Redirect stdout and stderr to terminal output
-//         terminal_writestring((const char *)buf);
-//         return count; // Assume all bytes were written
-//     }
-
-//     ramfs_fd_t *fd_entry = fd_table[fd];
-//     if (!(fd_entry->flags & O_WRONLY) & !(fd_entry->flags & O_RDWR)) {
-//         return -1; // Not writable
-//     }
-
-//     if (fd_entry->file == NULL) {
-//         return -1; // No file associated
-//     }
-
-//     // Calculate new size after writing
-//     size_t new_size = fd_entry->position + count;
-//     if (new_size > fd_entry->file->size) {
-//         // Manually resize since we don't have realloc
-//         char *new_data = allocate(new_size);
-//         if (!new_data) return -1; // Memory allocation failed
-
-//         // Copy old data to new allocation
-//         if (fd_entry->file->data) {
-//             memcpy(new_data, fd_entry->file->data, fd_entry->file->size);
-//             free(&fd_entry->file->data); // Free old memory
-//         }
-
-//         // Update file data pointer and size
-//         fd_entry->file->data = new_data;
-//         fd_entry->file->size = new_size;
-//     }
-
-//     // Copy new data into file at the current position
-//     memcpy(fd_entry->file->data + fd_entry->position, buf, count);
-
-//     // Update file descriptor position
-//     fd_entry->position += count;
-
-//     return count; // Return number of bytes written
-// }
-
 // Write to a file using a file descriptor
 ssize_t ramfs_write(int fd, const void *buf, size_t count) {
     if (fd < 0 || fd >= MAX_FDS || fd_table[fd] == NULL) {
