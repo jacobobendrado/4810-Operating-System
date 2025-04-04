@@ -13,7 +13,7 @@
 // (see https://wiki.osdev.org/Interrupt_Descriptor_Table#Structure_on_IA-32)
 #define IDT_INTERRUPT_GATE_32BIT 0x8E
 // 32-bit Trap gate: 0x8F
-// ( P=1, DPL=00b, S=0, type=1111b => type_attr=1000_1111b=0x8F)
+// ( P=1, DPL=00b, S=0, type=1111b => type_attr=1000_1111b=0x8:wF)
 #define IDT_TRAP_GATE_32BIT 0x8F
 // IO Ports for PICs
 #define PIC1_COMMAND_PORT 0x20
@@ -76,13 +76,12 @@ char* input_ptr = NULL;
 uint8_t alloc_size = 0;
 void* ptr[10];
 
-// ---- experimental attempt to run "commands"
+// ----- experimental attempt to run commands
+#define CMD_MAX_LEN 64
 char cmd_buffer[CMD_MAX_LEN];
 size_t cmd_pos = 0;
 ramfs_dir_t* current_dir = NULL;
 ramfs_dir_t* system_root = NULL;
-// ----- experimental attempt to run commands
-
 
 // ----- Bare Bones -----
 typedef enum {
@@ -156,9 +155,7 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 void terminal_putchar(char c)
 {
     if (c == '\n') {
-		char* term = "shompOS>";
 		terminal_advance_row();
-		terminal_writestring(term);
 	} else {
 		terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
 		if (++terminal_column == VGA_WIDTH) {
@@ -178,6 +175,35 @@ void terminal_write(const char* data, size_t size)
 			terminal_putchar(data[i]);
 		}
 }
+
+void terminal_writeint(int num) {
+    char buffer[12];  // Buffer for storing the integer as a string (including negative sign and null terminator)
+    int i = 0;
+
+    // Handle the special case when the number is 0
+    if (num == 0) {
+        terminal_putchar('0');
+        return;
+    }
+
+    // Handle negative numbers
+    if (num < 0) {
+        terminal_putchar('-');
+        num = -num;  // Make the number positive for further processing
+    }
+
+    // Convert integer to string in reverse order
+    while (num > 0) {
+        buffer[i++] = (num % 10) + '0';  // Get the last digit and convert it to character
+        num /= 10;  // Remove the last digit
+    }
+
+    // Print the digits in reverse order
+    for (--i; i >= 0; i--) {
+        terminal_putchar(buffer[i]);  // Print each digit from the buffer
+    }
+}
+
 
 void terminal_writestring(const char* data)
 {
@@ -313,33 +339,77 @@ void init_kb() {
 	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
 
-void handle_div_by_zero() {
-	terminal_writestring("Div by zero!");
-}
 
-// test_ramfs function in kernel.c
-void test_ramfs() {
-    ramfs_dir_t* root = ramfs_create_root();
-    if (!root) {
-        terminal_writestring("Failed to create root filesystem\n");
-        return;
-    }
-
-    // Create essential directories
-    ramfs_dir_t* bin = ramfs_create_dir(root, "bin");
-    ramfs_dir_t* home = ramfs_create_dir(root, "home");
-
-    if (!bin || !home) {
-        terminal_writestring("Failed to create essential directories\n");
-        return;
-    }
-
-    // Create a test file in root
-    const char* readme_data = "Welcome to ShompOS!\nType 'help' for available commands.\n";
-    ramfs_file_t* readme = ramfs_create_file(root, "README.txt", readme_data, strlen(readme_data) + 1);
-
-    if (!readme) {
-        terminal_writestring("Failed to create README.txt\n");
+void handle_keyboard_interrupt() {
+    ioport_out(PIC1_COMMAND_PORT, 0x20);
+    unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
+    if (status & 0x1) {
+        char keycode = ioport_in(KEYBOARD_DATA_PORT);
+        // Handle special keys
+        if((uint8_t)keycode == 0xE0 || (uint8_t)keycode == 224) {
+            keycode = ioport_in(KEYBOARD_DATA_PORT);
+        }
+        // Handle modifier keys
+        if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
+            keycode == 0x36 || (uint8_t)keycode == 0xB6) {
+            special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if (keycode == 0x38 || (uint8_t)keycode == 0xB8) {
+            special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if (keycode == 0x1D || (uint8_t)keycode == 0x9D) {
+            special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
+            return;
+        }
+        else if(keycode == 0x3A) {
+            special_key_state.caps = 1 - special_key_state.caps;
+            return;
+        }
+        // Ignore key releases
+        if ((uint8_t)keycode > 127) return;
+        // Handle enter key - process command
+        if (keyboard_map[(uint8_t)keycode] == '\n') {
+            cmd_buffer[cmd_pos] = '\0';
+            ramfs_write(STDIN_FILENO, '\n', 1);
+            ramfs_write(STDOUT_FILENO, '\n', 1); // Not working
+            terminal_putchar('\n');
+            if (current_dir && cmd_pos > 0) {
+                handle_command(cmd_buffer);
+            }
+            cmd_pos = 0;
+            terminal_writestring("shompOS> ");
+            return;
+        }
+        // Handle backspace (scan code 0x0E)
+        else if (keycode == 0x0E) {
+            if (cmd_pos > 0) {
+                cmd_pos--;
+                if (terminal_column > strlen("shompOS> ")) {
+                    terminal_column--;
+                    terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+                    terminal_buffer[terminal_row * VGA_WIDTH + terminal_column] = vga_entry(' ', terminal_color);
+                }
+            }
+            return;
+        }
+        // Add character to command buffer
+        else if (cmd_pos < CMD_MAX_LEN - 1) {
+            char c = keyboard_map[(uint8_t)keycode];
+            if (c >= 'a' && c <= 'z') {
+                if ((special_key_state.shift ^ special_key_state.caps) == 1) {
+                    c -= 32;
+                }
+            } else if (special_key_state.shift) {
+                c = keyboard_map_shift[(uint8_t)keycode];
+            }
+            if (c >= 32 && c <= 126) {  // Only printable characters
+                cmd_buffer[cmd_pos++] = c;
+                ramfs_write(STDIN_FILENO, &c, 1);
+                ramfs_write(STDOUT_FILENO, &c, 1);
+            }
+        }
     }
 }
 
@@ -440,13 +510,13 @@ void execute_command(char* cmd_buffer) {
         terminal_writestring("  rm <file> - Remove file\n");
     }
     else {
-        terminal_writestring("Unknown command: ");
-        terminal_writestring(argv[0]);
-        terminal_writestring("\nType 'help' for available commands\n");
+            terminal_writestring("Unknown command: ");
+            terminal_writestring(argv[0]);
+            terminal_writestring("\nType 'help' for available commands\n");
+        }
     }
-}
 
-void handle_command(char* cmd) {
+void_command(char* cmd) {
     // Split command and arguments
     char* cmd_name = cmd;
     char* args = NULL;
@@ -510,7 +580,8 @@ void handle_command(char* cmd) {
     }
     else if (strcmp(cmd_name, "cd") == 0) {
         if (!args) {
-            terminal_writestring("Usage: rm <filename>\n");
+
+            terminal_writestring("Usage: cd <filename>\n");
             return;
         }
         ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
@@ -520,7 +591,6 @@ void handle_command(char* cmd) {
         else {
             terminal_writestring("Failed to find directory\n");
         }
-        
     }
     else if (strcmp(cmd_name, "run") == 0) {
         if (!args) {
@@ -528,7 +598,6 @@ void handle_command(char* cmd) {
             return;
         }
         ramfs_run(current_dir, args);
-
     }
     else if (cmd_name[0] != '\0') {
         terminal_writestring("Unknown command: ");
@@ -537,6 +606,11 @@ void handle_command(char* cmd) {
     }
 }
 
+void handle_div_by_zero() {
+	terminal_writestring("Div by zero!");
+}
+
+// ----- Entry point -----
 void handle_keyboard_interrupt() {
     ioport_out(PIC1_COMMAND_PORT, 0x20);
     unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
@@ -720,13 +794,15 @@ void init_shell(ramfs_dir_t* root) {
 }
 
 void kernel_main() {
-    // Initialize core systems
     init_terminal();
-    init_idt();
-    init_kb();
-    init_heap(HEAP_LOWER_BOUND);
-
-    current_dir = system_root = init_fs();
+  	init_idt();
+  	init_kb();
+  	init_heap(HEAP_LOWER_BOUND);
+  	enable_interrupts();
+    ramfs_init_fd_system();
+    ramfs_dir_t* root = system_root = ramfs_create_root();
+    current_dir = root;
+    init_stdio(root);
 
     if (!current_dir) {
         terminal_writestring("Failed to initialize filesystem.");

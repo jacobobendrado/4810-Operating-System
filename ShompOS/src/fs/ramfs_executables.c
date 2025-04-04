@@ -8,6 +8,7 @@
 #include <ramfs.h>
 #include <string.h>
 #include <ramfs_executables.h>
+#include <kernel.h>
 
 void ramfs_pwd(ramfs_dir_t *dir) {
     if (!dir) return;
@@ -36,9 +37,9 @@ void ramfs_pwd(ramfs_dir_t *dir) {
         }
         temp = temp->parent;
     }
-
+    terminal_writestring("The current directory is: {");
     terminal_writestring(path);
-    terminal_writestring("\n");
+    terminal_writestring("}\n");
     void *path_ptr = path;
     free(path_ptr);
 }
@@ -112,6 +113,8 @@ void ramfs_ls(ramfs_dir_t *dir) {
     for (size_t i = 0; i < dir->file_count; i++) {
         terminal_writestring("[FILE] ");
         terminal_writestring(dir->files[i]->name);
+        terminal_writestring("    size:");
+        terminal_writeint(dir->files[i]->size);
         terminal_writestring("\n");
     }
 }

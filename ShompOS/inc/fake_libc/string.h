@@ -14,5 +14,7 @@ char *strdup(const char *s);
 int strncmp(const char *s1, const char *s2, size_t n);
 char *strtok(char *str, const char *delim);
 char *strchr(const char *s, int c);
+void *memset(void *ptr, int value, size_t num);
+
 
 #endif

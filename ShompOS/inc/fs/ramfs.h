@@ -5,6 +5,35 @@
 #ifndef RAMFS_H
 #define RAMFS_H
 
+// Global file descriptor table
+#define MAX_FDS 64          // Maximum number of open files
+
+// File descriptor definitions
+#ifndef SEEK_SET
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+#endif
+
+#define STDIN_FILENO  0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+
+#define O_RDONLY 0x0001
+#define O_WRONLY 0x0002
+#define O_RDWR   0x0003
+#define O_APPEND 0x0004
+
+#ifndef _SSIZE_T_DEFINED
+typedef long ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
+
+#ifndef _OFF_T_DEFINED
+typedef long off_t;
+#define _OFF_T_DEFINED
+#endif
+
 #include <stddef.h> // For size_t
 
 // File structure
@@ -24,6 +53,17 @@ typedef struct ramfs_dir {
     size_t subdir_count;         // Number of subdirectories
 } ramfs_dir_t;
 
+// File descriptor structure
+typedef struct {
+    int fd;                 // File descriptor number
+    ramfs_file_t *file;     // Pointer to the file
+    size_t position;        // Current position in the file
+    int flags;              // Open flags (read, write, etc.)
+} ramfs_fd_t;
+
+extern ramfs_fd_t *fd_table[MAX_FDS];
+extern int fd_count;
+
 // Function prototypes for RAMFS operations
 ramfs_dir_t *ramfs_create_root();
 ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *data, size_t size);
@@ -32,5 +72,14 @@ ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name);
 ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path);
 ramfs_dir_t *init_fs();
 int init_mnt(ramfs_dir_t *mnt);
+
+int ramfs_init_fd_system(void);
+int ramfs_open(ramfs_dir_t *root, const char *path, int flags);
+ssize_t ramfs_read(int fd, void *buf, size_t count);
+ssize_t ramfs_write(int fd, const void *buf, size_t count);
+off_t ramfs_seek(int fd, off_t offset, int origin);
+int ramfs_close(int fd);
+void test_fd_system(ramfs_dir_t *root);
+int init_stdio(ramfs_dir_t *root);
 
 #endif // RAMFS_H
