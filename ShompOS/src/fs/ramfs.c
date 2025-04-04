@@ -232,13 +232,8 @@ int ramfs_init_fd_system(void) {
 
 int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     if (!root || !path || *path == '\0') {
-        terminal_writestring("Invalid root or path\n");
         return -1;
     }
-
-    terminal_writestring("Opening file: ");
-    terminal_writestring(path);
-    terminal_writestring("\n");
 
     // Handle special files
     if (strcmp(path, "/dev/stdin") == 0) return 0;
@@ -248,7 +243,6 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     // Copy path to safely manipulate it
     char *path_copy = strdup(path);
     if (!path_copy) {
-        terminal_writestring("Failed to allocate memory for path copy\n");
         return -1;
     }
 
@@ -261,29 +255,14 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
         *last_slash = '\0';  // Split into directory and filename
         filename = last_slash + 1;
 
-        // Ensure directory path isn't empty (e.g., "/dummy" case)
         if (strlen(path_copy) > 0) {
-            terminal_writestring("Searching directory: ");
-            terminal_writestring(path_copy);
-            terminal_writestring("\n");
-
             dir = ramfs_find_dir(root, path_copy);
             if (!dir) {
-                terminal_writestring("Directory not found: ");
-                terminal_writestring(path_copy);
-                terminal_writestring("\n");
                 free(path_copy);
                 return -1;
             }
         }
     }
-
-    terminal_writestring("Final directory: ");
-    terminal_writestring(dir->name);
-    terminal_writestring("\n");
-    terminal_writestring("Filename: ");
-    terminal_writestring(filename);
-    terminal_writestring("\n");
 
     // Locate the file in the directory
     ramfs_file_t *file = NULL;
@@ -295,14 +274,9 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     }
 
     if (!file) {
-        terminal_writestring("File not found: ");
-        terminal_writestring(filename);
-        terminal_writestring("\n");
         free(path_copy);
         return -1;
     }
-
-    terminal_writestring("File found\n");
 
     // Find an available file descriptor
     int fd = -1;
@@ -314,7 +288,6 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     }
 
     if (fd == -1) {
-        terminal_writestring("No free file descriptors available\n");
         free(path_copy);
         return -1;
     }
@@ -322,7 +295,6 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     // Allocate file descriptor entry
     ramfs_fd_t *fd_entry = allocate(sizeof(ramfs_fd_t));
     if (!fd_entry) {
-        terminal_writestring("Failed to allocate memory for file descriptor\n");
         free(path_copy);
         return -1;
     }
@@ -335,13 +307,10 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     fd_table[fd] = fd_entry;
     fd_count++;
 
-    terminal_writestring("File descriptor allocated: ");
-    terminal_writeint(fd);
-    terminal_writestring("\n");
-
     free(path_copy);
     return fd;
 }
+
 
 // Read from a file using a file descriptor
 ssize_t ramfs_read(int fd, void *buf, size_t count) {
@@ -378,12 +347,13 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
     }
 
     if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-        // Redirect stdout and stderr to terminal output
+        // Simulate writing to terminal
         terminal_writestring((const char *)buf);
-        return count; // Assume all bytes were written
+        return count;
     }
 
     ramfs_fd_t *fd_entry = fd_table[fd];
+
     if (!(fd_entry->flags & (O_WRONLY | O_RDWR))) {
         return -1; // Not writable
     }
@@ -392,37 +362,36 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
         return -1; // No file associated
     }
 
-    // If O_APPEND is set, move position to end of file before writing
+    // Move position to end if O_APPEND is set
     if (fd_entry->flags & O_APPEND) {
         fd_entry->position = fd_entry->file->size;
     }
 
-    // Calculate new size after writing
     size_t new_size = fd_entry->position + count;
-    if (new_size > fd_entry->file->size) {
-        // Manually resize since we don't have realloc
-        char *new_data = allocate(new_size);
-        if (!new_data) return -1; // Memory allocation failed
 
-        // Copy old data to new allocation
+    if (new_size > fd_entry->file->size) {
+        // Resize file data buffer (manual realloc)
+        char *new_data = allocate(new_size);
+        if (!new_data) return -1;
+
+        // Copy old data into new buffer
         if (fd_entry->file->data) {
             memcpy(new_data, fd_entry->file->data, fd_entry->file->size);
-            free(fd_entry->file->data); // Free old memory
+            void *old_data = fd_entry->file->data;
+            free(&old_data);
         }
 
-        // Update file data pointer and size
         fd_entry->file->data = new_data;
         fd_entry->file->size = new_size;
     }
 
-    // Copy new data into file at the current position
-    memcpy(fd_entry->file->data + fd_entry->position, (char*)buf, count);
-
-    // Update file descriptor position
+    // Write new data
+    memcpy(fd_entry->file->data + fd_entry->position, buf, count);
     fd_entry->position += count;
 
-    return count; // Return number of bytes written
+    return count;
 }
+
 
 
 // Change the position in a file
@@ -461,19 +430,20 @@ off_t ramfs_seek(int fd, off_t offset, int origin) {
 
 // Close a file descriptor
 int ramfs_close(int fd) {
-    // Validate inputs
-    if (fd < 0 || fd >= MAX_FDS || !fd_table[fd]) return -1;
+    if (fd < 0 || fd >= MAX_FDS || fd_table[fd] == NULL) {
+        return -1; // Invalid fd
+    }
 
-    // Free file descriptor
-    void *fd_ptr = fd_table[fd];
+    ramfs_fd_t *fd_entry = fd_table[fd];
+    void *fd_ptr = fd_entry;
     free(&fd_ptr);
 
-    // Remove from fd_table
     fd_table[fd] = NULL;
     fd_count--;
 
     return 0;
 }
+
 
 int init_stdio(ramfs_dir_t *root) {
     // Create special files for stdin, stdout, stderr with size 0
@@ -487,31 +457,22 @@ int init_stdio(ramfs_dir_t *root) {
     int out = ramfs_open(root, "stdout", O_WRONLY);
     int err = ramfs_open(root, "stderr", O_WRONLY);
 
-    terminal_writeint(in);
-    terminal_writestring("\n");
-
-    // Create dummy file
-    ramfs_file_t *dummy_file = ramfs_create_file(root, "dummy", "", 0);
+    // Create test file
+    ramfs_file_t *test_file = ramfs_create_file(root, "FD-test", "", 0);
     // Open with read+write permissions
-    int dummy_fd = ramfs_open(root, "dummy", O_RDWR | O_APPEND);
-
-    terminal_writeint(dummy_fd);
-    terminal_writestring("\n");
+    int test_fd = ramfs_open(root, "FD-test", O_RDWR | O_APPEND);
 
     // Write to dummy file
-    const char* data = "Sample Data.\n";
-    ramfs_write(dummy_fd, data, strlen(data));
+    const char* data = "Welcome to ShompOS. This message demonstrates read and write capabilities.\n";
+    ramfs_write(test_fd, data, strlen(data));
 
     // Seek back to beginning of file to read
-    ramfs_seek(dummy_fd, 0, SEEK_SET);  // Add this line to reset position
+    ramfs_seek(test_fd, 0, SEEK_SET);  // Add this line to reset position
 
     // Read from dummy file with a proper buffer
-    char read_data[20] = {0}; // Allocate a buffer
-    int r = ramfs_read(dummy_fd, read_data, sizeof(read_data) - 1);
+    char read_data[80] = {0}; // Allocate a buffer
+    int r = ramfs_read(test_fd, read_data, sizeof(read_data) - 1);
     read_data[r] = '\0'; // Ensure null termination
-
-    terminal_writeint(r);
-    terminal_writestring("\n");
     terminal_writestring(read_data);
 
     return 0;
