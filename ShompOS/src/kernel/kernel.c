@@ -54,7 +54,7 @@
 
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
-IDT_entry IDT[IDT_SIZE]; 
+IDT_entry IDT[IDT_SIZE];
 
 // --- output ---
 static const size_t VGA_WIDTH = 80;
@@ -231,8 +231,8 @@ void terminal_refresh() {
 			size_t index = y * VGA_WIDTH + x;
 			uint16_t oc = terminal_buffer[index];
 			terminal_putentryat(oc, terminal_color, x, y);
-		}	
-	} 
+		}
+	}
 }
 
 // void exception_handler(uint8_t num) {
@@ -255,7 +255,7 @@ void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
 void init_pit(uint32_t divisor) {
     // Command byte: Channel 0, low/high byte, rate generator mode
     ioport_out(PIT_COMMAND_MODE_PORT, 0x36);
-    
+
     // Send divisor (low byte then high byte)
     ioport_out(PIT_CHANNEL_0_DATA_PORT, divisor & 0xFF);
     ioport_out(PIT_CHANNEL_0_DATA_PORT, (divisor >> 8) & 0xFF);
@@ -268,7 +268,7 @@ void handle_clock_interrupt() {
 	// clear interrupt; tells PIC we
 	// are handling it.
 	ioport_out(PIC1_COMMAND_PORT, 0x20);
-	
+
 	// terminal_writestring("clock");
 	switch_process_from_queue();
 
@@ -372,8 +372,8 @@ void handle_keyboard_interrupt() {
         // Handle enter key - process command
         if (keyboard_map[(uint8_t)keycode] == '\n') {
             cmd_buffer[cmd_pos] = '\0';
-            ramfs_write(STDIN_FILENO, '\n', 1);
-            ramfs_write(STDOUT_FILENO, '\n', 1); // Not working
+            ramfs_write(STDIN_FILENO, (const void *)"\n", 1);
+            ramfs_write(STDOUT_FILENO, (const void *)"\n", 1);
             terminal_putchar('\n');
             if (current_dir && cmd_pos > 0) {
                 handle_command(cmd_buffer);
@@ -412,6 +412,98 @@ void handle_keyboard_interrupt() {
         }
     }
 }
+
+void handle_command(char* cmd) {
+     // Split command and arguments
+     char* cmd_name = cmd;
+     char* args = NULL;
+
+     // Find first space to separate command from args
+     for (size_t i = 0; cmd[i] != '\0'; i++) {
+         if (cmd[i] == ' ') {
+             cmd[i] = '\0';  // Split string
+             args = &cmd[i + 1];
+             break;
+         }
+     }
+
+     if (strcmp(cmd_name, "clear") == 0) {
+         terminal_clear();
+     }
+     else if (strcmp(cmd_name, "ls") == 0) {
+         ramfs_ls(current_dir);
+     }
+     else if (strcmp(cmd_name, "pwd") == 0) {
+         ramfs_pwd(current_dir);
+     }
+     else if (strcmp(cmd_name, "cat") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: cat <filename>\n");
+             return;
+         }
+         ramfs_cat(current_dir, args);
+     }
+     else if (strcmp(cmd_name, "touch") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: touch <filename>\n");
+             return;
+         }
+         ramfs_touch(current_dir, args);
+     }
+     else if (strcmp(cmd_name, "mkdir") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: mkdir <dirname>\n");
+             return;
+         }
+         ramfs_mkdir(current_dir, args);
+     }
+     else if (strcmp(cmd_name, "rm") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: rm <filename>\n");
+             return;
+         }
+         ramfs_rm(current_dir, args);
+     }
+     else if (strcmp(cmd_name, "help") == 0) {
+         terminal_writestring("Available commands:\n");
+         terminal_writestring("  clear        Clear the screen\n");
+         terminal_writestring("  ls          List directory contents\n");
+         terminal_writestring("  pwd         Print working directory\n");
+         terminal_writestring("  cat <file>  Display file contents\n");
+         terminal_writestring("  touch <file> Create empty file\n");
+         terminal_writestring("  mkdir <dir> Create directory\n");
+         terminal_writestring("  rm <file>   Remove file\n");
+         terminal_writestring("  help        Show this help message\n");
+     }
+     else if (strcmp(cmd_name, "cd") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: rm <filename>\n");
+             return;
+         }
+         ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
+         if (result_dir) {
+             current_dir = result_dir;
+         }
+         else {
+             terminal_writestring("Failed to find directory\n");
+         }
+
+     }
+     else if (strcmp(cmd_name, "run") == 0) {
+         if (!args) {
+             terminal_writestring("Usage: rm <filename>\n");
+             return;
+         }
+         ramfs_run(current_dir, args);
+
+     }
+     else if (cmd_name[0] != '\0') {
+         terminal_writestring("Unknown command: ");
+         terminal_writestring(cmd_name);
+         terminal_writestring("\n");
+     }
+ }
+
 
 // Modified command handling in handle_keyboard_interrupt in kernel.c
 void parse_command(char* cmd_buffer, char* argv[], int* argc) {
@@ -610,99 +702,6 @@ void handle_div_by_zero() {
 	terminal_writestring("Div by zero!");
 }
 
-// ----- Entry point -----
-void handle_keyboard_interrupt() {
-    ioport_out(PIC1_COMMAND_PORT, 0x20);
-    unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
-    if (status & 0x1) {
-        char keycode = ioport_in(KEYBOARD_DATA_PORT);
-
-        // Handle special keys
-        if((uint8_t)keycode == 0xE0 || (uint8_t)keycode == 224) {
-            keycode = ioport_in(KEYBOARD_DATA_PORT);
-        }
-
-        // Handle modifier keys
-        if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
-            keycode == 0x36 || (uint8_t)keycode == 0xB6) {
-            special_key_state.shift = 1 - ((uint8_t)keycode >> 7);
-            return;
-        }
-        else if (keycode == 0x38 || (uint8_t)keycode == 0xB8) {
-            special_key_state.alt = 1 - ((uint8_t)keycode >> 7);
-            return;
-        }
-        else if (keycode == 0x1D || (uint8_t)keycode == 0x9D) {
-            special_key_state.ctrl = 1 - ((uint8_t)keycode >> 7);
-            return;
-        }
-        else if(keycode == 0x3A) {
-            special_key_state.caps = 1 - special_key_state.caps;
-            return;
-        }
-
-        // Ignore key releases
-        if ((uint8_t)keycode > 127) return;
-
-        if (keyboard_map[(uint8_t)keycode] == '1') {
-            kill_process(1);
-            switch_process_from_queue();
-
-        }
-        if (keyboard_map[(uint8_t)keycode] == '2') {
-            kill_process(2);
-            switch_process_from_queue();
-        }
-
-        // Handle enter key - process command
-        if (keyboard_map[(uint8_t)keycode] == '\n') {
-            cmd_buffer[cmd_pos] = '\0';
-            terminal_putchar('\n');
-
-            if (current_dir && cmd_pos > 0) {
-                handle_command(cmd_buffer);
-            }
-
-            cmd_pos = 0;
-            terminal_writestring("shompOS> ");
-            return;
-        }
-                // Handle enter key - process command
-        else if (keyboard_map[(uint8_t)keycode] == 'p') {
-            print_free_counts();
-        }
-        // Handle backspace (scan code 0x0E)
-        else if (keycode == 0x0E) {
-            if (cmd_pos > 0) {
-                cmd_pos--;
-                if (terminal_column > strlen("shompOS> ")) {
-                    terminal_column--;
-                    terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
-                    terminal_buffer[terminal_row * VGA_WIDTH + terminal_column] = vga_entry(' ', terminal_color);
-                }
-            }
-            return;
-        }
-        // Add character to command buffer
-        else if (cmd_pos < CMD_MAX_LEN - 1) {
-            char c = keyboard_map[(uint8_t)keycode];
-
-            if (c >= 'a' && c <= 'z') {
-                if ((special_key_state.shift ^ special_key_state.caps) == 1) {
-                    c -= 32;
-                }
-            } else if (special_key_state.shift) {
-                c = keyboard_map_shift[(uint8_t)keycode];
-            }
-
-            if (c >= 32 && c <= 126) {  // Only printable characters
-                cmd_buffer[cmd_pos++] = c;
-                terminal_putchar(c);
-            }
-        }
-    }
-}
-
 // ===== SAMPLE PROCESSES =====
 void sample() {
 	uint8_t row = 0;
@@ -710,14 +709,14 @@ void sample() {
 	while(1){
 		uint8_t color = vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
 		char buf[5] = "text";
-		
+
 		for (uint8_t i = 0; i < VGA_HEIGHT+4; i++){
 			terminal_putentryat(' ', color, i, row);
 		}
 		for (uint8_t i = 0; i < 4 ; i++){
 			terminal_putentryat(buf[i], color, i+col, row);
 		}
-		
+
 		if (++row == VGA_HEIGHT) {
 			row = 0;
 			if (++col == VGA_HEIGHT) col = 0;
@@ -733,7 +732,7 @@ void sample2() {
 	while (1) {
     	char buf[5];
     	addr_to_string(buf, (uintptr_t)color);
-		
+
 		for (uint8_t i = 4; i > 0 ; i--){
 			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
 		}
@@ -750,7 +749,7 @@ void sample3() {
 	while (1) {
     	char buf[8] = "       ";
     	// addr_to_string(buf, (uintptr_t)color);
-		
+
 		for (uint8_t i = 7; i > 0 ; i--){
 			terminal_putentryat(buf[i], color, (VGA_WIDTH/2)+i, row);
 		}
@@ -828,4 +827,4 @@ void kernel_main() {
 
     // Main kernel loop
     while(1);
-} 
+}

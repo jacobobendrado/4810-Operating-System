@@ -63,63 +63,45 @@ ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name) {
 // create a file
 ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *data, size_t size) {
     if (!dir || !name || !data) return NULL;
-    // Allocate new file structure
+
     ramfs_file_t *new_file = (ramfs_file_t *)allocate(sizeof(ramfs_file_t));
     if (!new_file) return NULL;
 
-    // Allocate and copy the name
     new_file->name = strdup(name);
     if (!new_file->name) {
-        void *file_ptr = new_file;
-        free(file_ptr);
+        free(new_file);
         return NULL;
     }
 
-
-    // Allocate and copy the data
-    if (size == 0) {
-        new_file->data = allocate(1);
-    }
-    else {
-        new_file->data = allocate(size);
-    }
+    new_file->data = (size == 0) ? allocate(1) : allocate(size);
     if (!new_file->data) {
-        void *name_ptr = new_file->name;
-        void *file_ptr = new_file;
-        free(name_ptr);
-        free(file_ptr);
+        free(new_file->name);
+        free(new_file);
         return NULL;
     }
 
+    memcpy(new_file->data, data, size);
     new_file->size = size;
 
-    // Expand directory's files array
     ramfs_file_t **new_files = allocate((dir->file_count + 1) * sizeof(ramfs_file_t*));
     if (!new_files) {
-        void *name_ptr = new_file->name;
-        if (new_file->data) {
-            void *data_ptr = new_file->data;
-            free(&data_ptr);
-        }
-        void *file_ptr = new_file;
-        free(name_ptr);
-        free(data_ptr);
-        free(file_ptr);
+        free(new_file->data);
+        free(new_file->name);
+        free(new_file);
         return NULL;
     }
 
-    // Copy existing files if any
     if (dir->files) {
         memcpy(new_files, dir->files, dir->file_count * sizeof(ramfs_file_t*));
-        void *old_files = dir->files;
-        free(old_files);
+        free(dir->files);
     }
 
-    // Add new file
     dir->files = new_files;
     dir->files[dir->file_count++] = new_file;
+
     return new_file;
 }
+
 
 
 // Delete a file from a directory
