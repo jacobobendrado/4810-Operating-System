@@ -70,6 +70,8 @@ ramfs_file_t *ramfs_create_file(ramfs_dir_t *dir, const char *name, const char *
 void ramfs_delete_file(ramfs_dir_t *dir, const char *name);
 ramfs_dir_t *ramfs_create_dir(ramfs_dir_t *parent, const char *name);
 ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path);
+ramfs_dir_t *init_fs();
+int init_mnt(ramfs_dir_t *mnt);
 
 int ramfs_init_fd_system(void);
 int ramfs_open(ramfs_dir_t *root, const char *path, int flags);

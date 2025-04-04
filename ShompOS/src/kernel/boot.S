@@ -28,6 +28,7 @@
 .global load_idt
 .global syscall_handler
 .global keyboard_handler
+.global clock_handler
 .global ioport_in
 .global ioport_out
 .global enable_interrupts
@@ -36,6 +37,7 @@
 # be called in assembly
 .extern kernel_main            
 .extern handle_keyboard_interrupt
+.extern handle_clock_interrupt
 
 # loads the gdt_descriptor found in gdt.s
 load_gdt:
@@ -59,19 +61,47 @@ enable_interrupts:
 
 # handle syscalls
 syscall_handler:
-    pushal
-    sall $2, %eax
-    addl sys_table, %eax
+    pushf
+    cld
+    push %ebp
+    push %edi
+    push %esi
+    push %edx
+    push %ecx
+    push %ebx
+    leal (sys_table), %ebx
+    movl (%ebx, %eax, 4), %eax
     call *%eax
+    pop %ebx
+    pop %ecx
+    pop %edx
+    pop %esi
+    pop %edi
+    pop %ebp
+    popf
+    iret
 
-# pushes all registers before calling C 
-# function. youtube man said to.
+# pushes all registers before calling C function. this is to prevent us from
+# losing our context when we return from the interrupt handler
 keyboard_handler:
     pushal
     cld
     call handle_keyboard_interrupt
     popal
     iret
+
+
+clock_handler:
+    cli
+    pushal
+    cld
+    call handle_clock_interrupt
+    popal
+    sti
+    iret
+
+
+
 
 # reads a byte from an IO port (address
 # stored in dx) into al 
@@ -102,7 +132,7 @@ start:
     movl $stack_top, %esp  
     cli                      
 
-    movl $stack_top, %esp
+    #movl $stack_top, %esp
     call kernel_main
     hlt
 

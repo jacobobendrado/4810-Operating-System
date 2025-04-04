@@ -2,7 +2,8 @@
 // functions that act as executables for the ramfs
 // Cedarville University 2024-25 OSDev Team
 
-#include <heap.h>       // For allocate, free
+#include <heap.h>       // For allocate(), free()
+#include <kernel.h>     // For terminal_writestring()
 #include <fake_libc.h>
 #include <ramfs.h>
 #include <string.h>
@@ -175,4 +176,28 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
 
 ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *dir_name) {
     return ramfs_find_dir(root, dir_name);
+}
+
+void ramfs_run(ramfs_dir_t *dir, const char *filename) {
+    if (!dir || !filename) return;
+
+    // Trim leading spaces
+    while (*filename == ' ') filename++;
+
+    // Find the file
+    ramfs_file_t* file = NULL;
+    for (size_t i = 0; i < dir->file_count; i++) {
+        if (strcmp(dir->files[i]->name, filename) == 0) {
+            file = dir->files[i];
+            break;
+        }
+    }
+
+    if (file) {
+        init_elf(file);
+    } else {
+        terminal_writestring("File not found: ");
+        terminal_writestring(filename);
+        terminal_writestring("\n");
+    }
 }

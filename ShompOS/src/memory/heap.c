@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <kernel/kernel.h>
 #include <fake_libc/fake_libc.h>
+#include <stdint.h>
 
 // an array of FIFO linked lists which represents free memory blocks for
 // each of the valid scales. 
@@ -16,7 +17,7 @@ static void* current_brk = NULL;
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
 // returns: next power of 2, uint8_t
-uint8_t size_to_scale(uint32_t size) {
+inline uint8_t size_to_scale(uint32_t size) {
     // add the size of the required header to the request.
     size += sizeof(block_header);
     // scale = size rounded up to the nearest power of 2.
@@ -37,6 +38,7 @@ uint8_t size_to_scale(uint32_t size) {
     // |504..1015 - A       |
     // +--------------------+
 }
+
 
 // purpose: adds a memory block to the appropriate head of free_list and sets
 //          is_free to true
@@ -230,14 +232,20 @@ void* allocate(size_t request_size) {
 }
 
 // purpose: returns a previously allocated block of memory back into the
-//          available pool and clears the pointer.
+//          available pool.
 // data: a pointer to the first free byte after a block_header. (this should be
 //       the pointer returned by allocate().)
-void free(void** data){
+// returns: 0 on success, 1 on failure
+uint8_t free(void* data) {
 	// reject empty blocks
-    if (!data || !*data) return;
-    block_header* block = ((block_header*)*data)-1;
-	
+    if (!data) return 1;
+    block_header* block = (block_header*)data-1;
+	if ((block_header*)block->list.next != block || 
+        (block_header*)block->list.prev != block) {
+        terminal_writestring("\nBLOCK DATA CORRUPTED. failed to free");
+        return 1;
+    }
+
     // merge and free block
 	block = __blkmngr_coalesce_block(block);
     __blkmngr_add_to_free_list(block);
@@ -246,9 +254,7 @@ void free(void** data){
     // to shrink heap.
     void* block_end = (void*)block+(1<<MAX_BLOCK_SCALE);
     if (block->scale == MAX_BLOCK_SCALE && current_brk == block_end) sbrk(-1);
-
-    // clear pointer
-    *data = NULL;
+    return 0;
 }
 
 // purpose: moves the current_brk according to the provided address. 
@@ -302,7 +308,7 @@ int8_t sbrk(int32_t inc) {
 // ----- FOR DEBUGGING ------
 // stole from Claude
 char* addr_to_string(char* buffer, uintptr_t addr) {
-    const char hex_digits[] = "0123456789abcdef";
+    char hex_digits[] = "0123456789ABCDEF";
     buffer[0] = '0';
     buffer[1] = 'x';
     
@@ -320,6 +326,7 @@ char* addr_to_string(char* buffer, uintptr_t addr) {
         digits++;
         temp >>= 4;
     }
+    if (digits == 1) digits++;
     
     // Write digits from most to least significant
     buffer[digits + 2] = '\0';  // +2 for "0x" prefix
@@ -344,7 +351,7 @@ void print_free_counts(){
             curr = curr->next;
         }
         char c[2] = {(char)count+48, '\0'};
-        char c2[2] = {i==10 ? 'A' : (char)i+48, '\0'};
+        char c2[2] = {i>=10 ? (char)i+'A'-10 : (char)i+'0', '\0'};
         terminal_writestring(c);
         terminal_writestring(" free blocks of scale ");
         terminal_writestring(c2);

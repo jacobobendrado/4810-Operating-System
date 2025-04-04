@@ -2,10 +2,10 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <fake_libc.h>    // #include "../../inc/fake_libc/fake_libc.h"
+#include <fake_libc/fake_libc.h>
 
 #define HEAP_LOWER_BOUND 0x4000000
-#define MAX_BLOCK_SCALE 0x0A
+#define MAX_BLOCK_SCALE 0x0F
 #define MIN_BLOCK_SCALE 0x04
 
 // sits at the 9 LSB of every memory block. a block's size in bytes is
@@ -20,10 +20,11 @@ typedef struct _block_header {
 } __attribute__((packed)) block_header;
 
 void init_heap();
-void* allocate(size_t size);
-void free(void** block_ptr);
+void* allocate(size_t request_size);
+uint8_t free(void* data);
 int8_t brk(void* addr);
 int8_t sbrk(int32_t inc);
 
 // ----- FOR DEBUGGING ------
 void print_free_counts();
+char* addr_to_string(char* buffer, uintptr_t addr);

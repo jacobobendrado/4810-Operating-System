@@ -1,0 +1,10 @@
+Welcome to ShompOS!
+Available commands:
+  clear - Clear the screen
+  ls    - List directory contents
+  pwd   - Print working directory
+  cat   - Display file contents
+  touch - Create new file
+  mkdir - Create directory
+  rm    - Remove file
+  help  - Show this help message

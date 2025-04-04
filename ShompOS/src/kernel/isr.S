@@ -6,12 +6,14 @@
 
 .macro isr_err_stub num
 isr_stub_\num:
+    #pushl $\num
     call exception_handler
     iret
 .endm
 
 .macro isr_no_err_stub num
 isr_stub_\num:
+    #pushl $\num
     call exception_handler
     iret
 .endm
