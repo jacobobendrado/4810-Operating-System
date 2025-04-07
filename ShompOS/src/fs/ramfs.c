@@ -198,6 +198,21 @@ ramfs_dir_t *ramfs_find_dir(ramfs_dir_t *root, const char *path) {
     return current;
 }
 
+// Initialize the filesystem. Returns the root directory
+ramfs_dir_t* init_fs() {
+
+    ramfs_dir_t* root = ramfs_create_root();
+    if (!root) {
+        return NULL;
+    }
+
+    if (init_mnt(root)) {
+        return NULL;
+    }
+
+    return root;
+}
+
 // Global file descriptor table
 ramfs_fd_t *fd_table[MAX_FDS];
 int fd_count = 0;
@@ -360,7 +375,7 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
         if (fd_entry->file->data) {
             memcpy(new_data, fd_entry->file->data, fd_entry->file->size);
             void *old_data = fd_entry->file->data;
-            free(&old_data);
+            free(old_data);
         }
 
         fd_entry->file->data = new_data;
