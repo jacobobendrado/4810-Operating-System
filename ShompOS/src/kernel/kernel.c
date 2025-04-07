@@ -799,7 +799,7 @@ void kernel_main() {
   	init_heap(HEAP_LOWER_BOUND);
   	enable_interrupts();
     ramfs_init_fd_system();
-    ramfs_dir_t* root = system_root = ramfs_create_root();
+    ramfs_dir_t* root = system_root = init_fs();
     current_dir = root;
     init_stdio(root);
 
