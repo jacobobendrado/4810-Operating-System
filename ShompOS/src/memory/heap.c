@@ -4,6 +4,8 @@
 #include <fake_libc/fake_libc.h>
 #include <stdint.h>
 
+#include <tty.h>
+
 // an array of FIFO linked lists which represents free memory blocks for
 // each of the valid scales. 
 // slightly non-optimal in terms of memory usage. entries 0..3 remain unused so

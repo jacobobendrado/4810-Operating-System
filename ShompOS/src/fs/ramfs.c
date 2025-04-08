@@ -9,6 +9,8 @@
 #include <string.h>
 #include <kernel.h>
 
+#include <tty.h>
+
 // create the root directory
 ramfs_dir_t *ramfs_create_root() {
     ramfs_dir_t *root = allocate(sizeof(ramfs_dir_t));
@@ -316,7 +318,7 @@ ssize_t ramfs_read(int fd, void *buf, size_t count) {
     }
 
     if (fd == STDIN_FILENO) {
-        handle_keyboard_interrupt();
+        // handle_keyboard_interrupt();
         return -1; // Placeholder for keyboard input handling
     }
 

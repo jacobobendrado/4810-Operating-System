@@ -3,6 +3,8 @@
 #include <kernel/kernel.h>
 #include <memory/heap.h>
 
+#include <tty.h>
+
 // proccess 0 is reserved for the backstop process, a process that will only be
 // run when no other processes are active.
 static process_struct proc_table[MAX_PROCESS];

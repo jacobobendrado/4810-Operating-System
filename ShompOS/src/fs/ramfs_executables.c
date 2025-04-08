@@ -9,6 +9,9 @@
 #include <string.h>
 #include <ramfs_executables.h>
 #include <kernel.h>
+#include <elf.h>
+
+#include <tty.h>
 
 void ramfs_pwd(ramfs_dir_t *dir) {
     if (!dir) return;
