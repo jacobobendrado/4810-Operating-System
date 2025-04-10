@@ -235,9 +235,9 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
     }
 
     // Handle special files
-    if (strcmp(path, "/dev/stdin") == 0) return 0;
-    if (strcmp(path, "/dev/stdout") == 0) return 1;
-    if (strcmp(path, "/dev/stderr") == 0) return 2;
+    if (strcmp(path, "/stdin") == 0) return 0;
+    if (strcmp(path, "/stdout") == 0) return 1;
+    if (strcmp(path, "/stderr") == 0) return 2;
 
     // Copy path to safely manipulate it
     char *path_copy = strdup(path);
@@ -434,8 +434,7 @@ int ramfs_close(int fd) {
     }
 
     ramfs_fd_t *fd_entry = fd_table[fd];
-    void *fd_ptr = fd_entry;
-    free(&fd_ptr);
+    free(fd_entry);
 
     fd_table[fd] = NULL;
     fd_count--;
