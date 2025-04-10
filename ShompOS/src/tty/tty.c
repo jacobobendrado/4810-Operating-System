@@ -29,7 +29,7 @@ KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
 // ----- Bare Bones -----
-void init_kb() 
+void init_kb()
 {
 	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
@@ -354,8 +354,6 @@ void handle_command(char* cmd) {
 }
 
 
-
-
 void handle_keyboard_interrupt() {
     ioport_out(PIC1_COMMAND_PORT, 0x20);
     unsigned char status = ioport_in(KEYBOARD_STATUS_PORT);
@@ -388,9 +386,9 @@ void handle_keyboard_interrupt() {
         // Handle enter key - process command
         if (keyboard_map[(uint8_t)keycode] == '\n') {
             cmd_buffer[cmd_pos] = '\0';
-            ramfs_write(STDIN_FILENO, (const void *)"\n", 1);
+            //ramfs_write(STDIN_FILENO, (const void *)"\n", 1);
             ramfs_write(STDOUT_FILENO, (const void *)"\n", 1);
-            terminal_putchar('\n');
+            // terminal_putchar('\n');
             if (current_dir && cmd_pos > 0) {
                 handle_command(cmd_buffer);
             }
@@ -422,9 +420,20 @@ void handle_keyboard_interrupt() {
             }
             if (c >= 32 && c <= 126) {  // Only printable characters
                 cmd_buffer[cmd_pos++] = c;
-                ramfs_write(STDIN_FILENO, &c, 1);
+                // ramfs_write(STDIN_FILENO, &c, 1);
                 ramfs_write(STDOUT_FILENO, &c, 1);
             }
+        }
+    }
+}
+
+// Constantly checking stdin, and writing to screen
+void terminal_main() {
+    while(1) {
+        char printBuf[80] = {0};
+        if (ramfs_read(STDIN_FILENO, printBuf, 80)) {
+            // Simulate writing to terminal
+            terminal_writestring(printBuf);
         }
     }
 }

@@ -345,11 +345,11 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
         return -1; // Invalid file descriptor
     }
 
-    if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-        // Simulate writing to terminal
-        terminal_putchar(*(char *)buf);
-        return count;
-    }
+    // if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+    //     // Simulate writing to terminal
+    //     terminal_putchar(*(char *)buf);
+    //     return count;
+    // }
 
     ramfs_fd_t *fd_entry = fd_table[fd];
 

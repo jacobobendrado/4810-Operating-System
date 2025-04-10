@@ -18,6 +18,30 @@
 #include <elf.h>
 #include <tty.h>
 
+// ----- Constants ----
+// IDT_SIZE: Specific to x86 architecture
+#define IDT_SIZE 0x100
+// EXCEPTIONS_SIZE: Number of exceptions that are used in IDT
+#define EXCEPTIONS_SIZE 0x20
+// KERNEL_CODE_SEGMENT_OFFSET: the first segment after the null segment in gdt.s
+#define KERNEL_CODE_SEGMENT_OFFSET 0x8
+// 32-bit Interrupt gate: 0x8E
+// ( P=1, DPL=00b, S=0, type=1110b => type_attr=1000_1110b=0x8E)
+// (see https://wiki.osdev.org/Interrupt_Descriptor_Table#Structure_on_IA-32)
+#define IDT_INTERRUPT_GATE_32BIT 0x8E
+// 32-bit Trap gate: 0x8F
+// ( P=1, DPL=00b, S=0, type=1111b => type_attr=1000_1111b=0x8:wF)
+#define IDT_TRAP_GATE_32BIT 0x8F
+/// IO Ports for PIT
+#define PIT_CHANNEL_0_DATA_PORT 0x40
+#define PIT_COMMAND_MODE_PORT 0x43
+// PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
+// 0xFFFF results in around 18.3 Hz, the slowest possible with 16 bits
+#define PIT_DIVISOR 0x0FFF
+
+// ----- experimental attempt to run commands
+#define CMD_MAX_LEN 64
+
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
 IDT_entry IDT[IDT_SIZE];
@@ -259,7 +283,7 @@ void kernel_main() {
     init_process(&sample2, ap2);
     init_process(&sample3, ap3);
     init_process(&test_jump, allocate(500));
-
+    init_process(&terminal_main, allocate(500));
 
     init_pit(PIT_DIVISOR);
     enable_interrupts();
