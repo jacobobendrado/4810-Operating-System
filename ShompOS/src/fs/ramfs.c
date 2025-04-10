@@ -319,7 +319,7 @@ ssize_t ramfs_read(int fd, void *buf, size_t count) {
 
     if (fd == STDIN_FILENO) {
         // handle_keyboard_interrupt();
-        return -1; // Placeholder for keyboard input handling
+        return -1; // TODO: Keyboard input handling
     }
 
     ramfs_fd_t *fd_entry = fd_table[fd];
@@ -362,12 +362,14 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
     }
 
     // Move position to end if O_APPEND is set
+    // TODO: Should be in open (consider using seek for file initially appending)
     if (fd_entry->flags & O_APPEND) {
         fd_entry->position = fd_entry->file->size;
     }
 
     size_t new_size = fd_entry->position + count;
 
+    // TODO: Let the file shrink
     if (new_size > fd_entry->file->size) {
         // Resize file data buffer (manual realloc)
         char *new_data = allocate(new_size);
@@ -393,6 +395,7 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
 
 
 
+// TODO: Does this expand the file if needed? Or at least check for upper bounds?
 // Change the position in a file
 off_t ramfs_seek(int fd, off_t offset, int origin) {
     // Validate inputs
