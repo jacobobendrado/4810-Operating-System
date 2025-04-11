@@ -367,7 +367,7 @@ void handle_keyboard_interrupt() {
         if((uint8_t)keycode == 0xE0) {
             keycode = ioport_in(KEYBOARD_DATA_PORT);
         }
-        
+
         // Handle modifier keys
         if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
             keycode == 0x36 || (uint8_t)keycode == 0xB6) {
@@ -432,10 +432,41 @@ void handle_keyboard_interrupt() {
     }
 }
 
+void cowsay(const char *message) {
+    // Calculate length of message manually
+    int len = 0;
+    while (message[len] != '\0') {
+        len++;
+    }
+
+    // Top of speech bubble
+    terminal_writestring(" ");
+    for (int i = 0; i < len + 2; i++) terminal_writestring("_");
+    terminal_writestring("\n");
+
+    // Message line
+    terminal_writestring("< ");
+    terminal_writestring(message);
+    terminal_writestring(" >\n");
+
+    // Bottom of speech bubble
+    terminal_writestring(" ");
+    for (int i = 0; i < len + 2; i++) terminal_writestring("-");
+    terminal_writestring("\n");
+
+    // Cow
+    terminal_writestring("        \\   ^__^\n");
+    terminal_writestring("         \\  (oo)\\_______\n");
+    terminal_writestring("            (__)\\       )\\/\\\n");
+    terminal_writestring("                ||----w |\n");
+    terminal_writestring("                ||     ||\n");
+}
+
 // char* str = "";
 // ramfs_write(STDOUT_FILENO, str, strlen(str));
 // Constantly checking stdin, and writing to screen
 void terminal_main() {
+    cowsay("Mooo. Welcome to ShompOS!");
     while(1) {
         // read up to one full line from stdin
         char printBuf[81] = {0};
