@@ -3,11 +3,12 @@
 // Cedarville University 2024-25 OSDev Team
 
 #include <kernel.h>
-#include <tty.h>
+#include <string.h>
 
 void syscall_exit(int error_code) {
-    terminal_writestring("exiting!");
+    char* str = "exiting with code ";
     char myString[2] = { (char)error_code + '0', '\0' };
-    terminal_writestring(myString);
+    ramfs_write(STDOUT_FILENO, str, strlen(str));
+    ramfs_write(STDOUT_FILENO, myString, strlen(myString));
     return;
 }

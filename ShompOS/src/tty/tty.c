@@ -28,6 +28,8 @@ size_t cmd_pos = 0;
 KEY_state special_key_state = {0,0,0,0,0};
 uint8_t control_key_flags = 0;
 
+void terminal_writestring(const char* data);
+
 // ----- Bare Bones -----
 void init_kb()
 {
@@ -47,8 +49,8 @@ void init_terminal(void)
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
 	}
-	char* term = "shompOS>";
-	terminal_writestring(term);
+	// char* term = "shompOS>";
+	// terminal_writestring(term);
 }
 
 void terminal_advance_row()
@@ -267,6 +269,8 @@ void handle_command(char* cmd) {
      char* cmd_name = cmd;
      char* args = NULL;
 
+     terminal_writestring("\n");
+
      // Find first space to separate command from args
      for (size_t i = 0; cmd[i] != '\0'; i++) {
          if (cmd[i] == ' ') {
@@ -326,7 +330,7 @@ void handle_command(char* cmd) {
      }
      else if (strcmp(cmd_name, "cd") == 0) {
          if (!args) {
-             terminal_writestring("Usage: rm <filename>\n");
+             terminal_writestring("Usage: cd b<directory>\n");
              return;
          }
          ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
@@ -360,9 +364,10 @@ void handle_keyboard_interrupt() {
     if (status & 0x1) {
         char keycode = ioport_in(KEYBOARD_DATA_PORT);
         // Handle special keys
-        if((uint8_t)keycode == 0xE0 || (uint8_t)keycode == 224) {
+        if((uint8_t)keycode == 0xE0) {
             keycode = ioport_in(KEYBOARD_DATA_PORT);
         }
+        
         // Handle modifier keys
         if (keycode == 0x2A || (uint8_t)keycode == 0xAA ||
             keycode == 0x36 || (uint8_t)keycode == 0xB6) {
@@ -381,14 +386,14 @@ void handle_keyboard_interrupt() {
             special_key_state.caps = 1 - special_key_state.caps;
             return;
         }
+
         // Ignore key releases
         if ((uint8_t)keycode > 127) return;
+
         // Handle enter key - process command
         if (keyboard_map[(uint8_t)keycode] == '\n') {
             cmd_buffer[cmd_pos] = '\0';
-            //ramfs_write(STDIN_FILENO, (const void *)"\n", 1);
-            ramfs_write(STDOUT_FILENO, (const void *)"\n", 1);
-            // terminal_putchar('\n');
+
             if (current_dir && cmd_pos > 0) {
                 handle_command(cmd_buffer);
             }
@@ -427,12 +432,14 @@ void handle_keyboard_interrupt() {
     }
 }
 
+// char* str = "";
+// ramfs_write(STDOUT_FILENO, str, strlen(str));
 // Constantly checking stdin, and writing to screen
 void terminal_main() {
     while(1) {
-        char printBuf[80] = {0};
+        // read up to one full line from stdin
+        char printBuf[81] = {0};
         if (ramfs_read(STDIN_FILENO, printBuf, 80)) {
-            // Simulate writing to terminal
             terminal_writestring(printBuf);
         }
     }

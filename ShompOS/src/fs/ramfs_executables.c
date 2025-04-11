@@ -11,7 +11,6 @@
 #include <kernel.h>
 #include <elf.h>
 
-#include <tty.h>
 
 void ramfs_pwd(ramfs_dir_t *dir) {
     if (!dir) return;
@@ -40,11 +39,14 @@ void ramfs_pwd(ramfs_dir_t *dir) {
         }
         temp = temp->parent;
     }
-    terminal_writestring("The current directory is: {");
-    terminal_writestring(path);
-    terminal_writestring("}\n");
-    void *path_ptr = path;
-    free(path_ptr);
+
+    char* str = "The current directory is: {";
+    ramfs_write(STDOUT_FILENO, str, strlen(str));
+    ramfs_write(STDOUT_FILENO, path, strlen(path));
+    str = "}\n";
+    ramfs_write(STDOUT_FILENO, str, strlen(str));
+
+    free(path);
 }
 
 void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname) {
@@ -53,9 +55,10 @@ void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname) {
     // Check if directory already exists
     for (size_t i = 0; i < dir->subdir_count; i++) {
         if (strcmp(dir->subdirs[i]->name, dirname) == 0) {
-            terminal_writestring("Directory already exists: ");
-            terminal_writestring(dirname);
-            terminal_writestring("\n");
+            char* str = "Directory already exists: ";
+            ramfs_write(STDOUT_FILENO, str, strlen(str));
+            ramfs_write(STDOUT_FILENO, dirname, strlen(dirname));
+            ramfs_write(STDOUT_FILENO, "\n", 1);
             return;
         }
     }
@@ -64,13 +67,15 @@ void ramfs_mkdir(ramfs_dir_t *dir, const char *dirname) {
     ramfs_dir_t *newdir = ramfs_create_dir(dir, dirname);
 
     if (newdir) {
-        terminal_writestring("Created directory: ");
-        terminal_writestring(dirname);
-        terminal_writestring("\n");
+        char* str = "Created directory: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, dirname, strlen(dirname));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     } else {
-        terminal_writestring("Failed to create directory: ");
-        terminal_writestring(dirname);
-        terminal_writestring("\n");
+        char* str = "Failed to create directory: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, dirname, strlen(dirname));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     }
 }
 
@@ -87,38 +92,46 @@ void ramfs_rm(ramfs_dir_t *dir, const char *filename) {
     }
 
     if (!found) {
-        terminal_writestring("File not found: ");
-        terminal_writestring(filename);
-        terminal_writestring("\n");
+        char* str = "File not found: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, filename, strlen(filename));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
         return;
     }
 
     ramfs_delete_file(dir, filename);
-    terminal_writestring("Removed file: ");
-    terminal_writestring(filename);
-    terminal_writestring("\n");
+    char* str = "Removed file: ";
+    ramfs_write(STDOUT_FILENO, str, strlen(str));
+    ramfs_write(STDOUT_FILENO, filename, strlen(filename));
+    ramfs_write(STDOUT_FILENO, "\n", 1);
 }
 
 void ramfs_ls(ramfs_dir_t *dir) {
     if (!dir) return;
 
-    terminal_writestring("Contents of ");
+    char* str = "Contents of ";
+    ramfs_write(STDOUT_FILENO, str, strlen(str));
     ramfs_pwd(dir);
 
     // List directories first
     for (size_t i = 0; i < dir->subdir_count; i++) {
-        terminal_writestring("[DIR]  ");
-        terminal_writestring(dir->subdirs[i]->name);
-        terminal_writestring("\n");
+        char* str = "[DIR]  ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, dir->subdirs[i]->name, strlen(dir->subdirs[i]->name));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     }
 
     // Then list files
     for (size_t i = 0; i < dir->file_count; i++) {
-        terminal_writestring("[FILE] ");
-        terminal_writestring(dir->files[i]->name);
-        terminal_writestring("    size:");
-        terminal_writeint(dir->files[i]->size);
-        terminal_writestring("\n");
+        char* str = "[FILE] ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, dir->files[i]->name, strlen(dir->files[i]->name));
+        str = "    size:";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        // TODO: itos() the size lol
+        // ramfs_write(STDOUT_FILENO, dir->files[i]->size, strlen(dir->files[i]->size));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
+        
     }
 }
 
@@ -138,12 +151,13 @@ void ramfs_cat(ramfs_dir_t *dir, const char *filename) {
     }
 
     if (file) {
-        terminal_writestring(file->data);
-        terminal_writestring("\n");
+        ramfs_write(STDOUT_FILENO, file->data, strlen(file->data));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     } else {
-        terminal_writestring("File not found: ");
-        terminal_writestring(filename);
-        terminal_writestring("\n");
+        char* str = "File not found: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, filename, strlen(filename));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     }
 }
 
@@ -155,25 +169,30 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
 
     // Check for empty filename
     if (strlen(filename) == 0) {
-        terminal_writestring("Usage: touch <filename>\n");
+        char* str = "Usage: touch <filename>\n";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
         return;
     }
 
     // Check if file already exists
     for (size_t i = 0; i < dir->file_count; i++) {
         if (strcmp(dir->files[i]->name, filename) == 0) {
-            terminal_writestring("File already exists\n");
+            char* str = "File already exists\n";
+            ramfs_write(STDOUT_FILENO, str, strlen(str));
             return;
         }
     }
 
     ramfs_file_t* file = ramfs_create_file(dir, filename, "", 1);
     if (file) {
-        terminal_writestring("Created file: ");
-        terminal_writestring(filename);
-        terminal_writestring("\n");
+        char* str = "Created file: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, filename, strlen(filename));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     } else {
-        terminal_writestring("Failed to create file\n");
+        char* str = "Failed to create file\n";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     }
 }
 
@@ -199,8 +218,9 @@ void ramfs_run(ramfs_dir_t *dir, const char *filename) {
     if (file) {
         init_elf(file);
     } else {
-        terminal_writestring("File not found: ");
-        terminal_writestring(filename);
-        terminal_writestring("\n");
+        char* str = "File not found: ";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
+        ramfs_write(STDOUT_FILENO, filename, strlen(filename));
+        ramfs_write(STDOUT_FILENO, "\n", 1);
     }
 }

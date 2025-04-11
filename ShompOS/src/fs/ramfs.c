@@ -9,7 +9,6 @@
 #include <string.h>
 #include <kernel.h>
 
-#include <tty.h>
 
 // create the root directory
 ramfs_dir_t *ramfs_create_root() {
@@ -317,11 +316,6 @@ ssize_t ramfs_read(int fd, void *buf, size_t count) {
         return -1; // Invalid file descriptor
     }
 
-    if (fd == STDIN_FILENO) {
-        // handle_keyboard_interrupt();
-        return -1; // TODO: Keyboard input handling
-    }
-
     ramfs_fd_t *fd_entry = fd_table[fd];
     if (!(fd_entry->flags & O_RDONLY) && !(fd_entry->flags & O_RDWR)) {
         return -1; // Not readable
@@ -344,12 +338,6 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
     if (fd < 0 || fd >= MAX_FDS || fd_table[fd] == NULL) {
         return -1; // Invalid file descriptor
     }
-
-    // if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-    //     // Simulate writing to terminal
-    //     terminal_putchar(*(char *)buf);
-    //     return count;
-    // }
 
     ramfs_fd_t *fd_entry = fd_table[fd];
 
@@ -448,33 +436,21 @@ int ramfs_close(int fd) {
 
 int init_stdio(ramfs_dir_t *root) {
     // Create special files for stdin, stdout, stderr with size 0
-    ramfs_file_t *stdin_file = ramfs_create_file(root, "stdin", "", 0);
-    ramfs_file_t *stdout_file = ramfs_create_file(root, "stdout", "", 0);
-    ramfs_file_t *stderr_file = ramfs_create_file(root, "stderr", "", 0);
-    if (!stdin_file || !stdout_file || !stderr_file)
-        return -1;
+    // ramfs_file_t *stdin_file = ramfs_create_file(root, "stdin", "", 0);
+    // ramfs_file_t *stdout_file = ramfs_create_file(root, "stdout", "", 0);
+    // ramfs_file_t *stderr_file = ramfs_create_file(root, "stderr", "", 0);
+    // if (!stdin_file || !stdout_file || !stderr_file)
+        // return -1;
+    
+    // int in = ramfs_open(root, "stdin", O_RDWR | O_APPEND);
+    // int out = ramfs_open(root, "stdout", O_WRONLY);
+    // int err = ramfs_open(root, "stderr", O_WRONLY);
+    
+    ramfs_file_t *stdstream_file = ramfs_create_file(root, "stdstream", "", 80);
+    if (!stdstream_file) return -1;
 
-    int in = ramfs_open(root, "stdin", O_RDWR | O_APPEND);
-    int out = ramfs_open(root, "stdout", O_WRONLY);
-    int err = ramfs_open(root, "stderr", O_WRONLY);
-
-    // Create test file
-    ramfs_file_t *test_file = ramfs_create_file(root, "FD-test", "", 0);
-    // Open with read+write permissions
-    int test_fd = ramfs_open(root, "FD-test", O_RDWR | O_APPEND);
-
-    // Write to dummy file
-    const char* data = "Welcome to ShompOS. This message demonstrates read and write capabilities.\n";
-    ramfs_write(test_fd, data, strlen(data));
-
-    // Seek back to beginning of file to read
-    ramfs_seek(test_fd, 0, SEEK_SET);  // Add this line to reset position
-
-    // Read from dummy file with a proper buffer
-    char read_data[80] = {0}; // Allocate a buffer
-    int r = ramfs_read(test_fd, read_data, sizeof(read_data) - 1);
-    read_data[r] = '\0'; // Ensure null termination
-    terminal_writestring(read_data);
+    int in = ramfs_open(root, "stdstream", O_RDWR | O_APPEND);
+    int out = ramfs_open(root, "stdstream", O_WRONLY);
 
     return 0;
 }

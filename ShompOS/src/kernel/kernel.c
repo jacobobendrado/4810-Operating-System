@@ -62,7 +62,8 @@ void kill_process_exception() {
 
 // void exception_handler(uint8_t num) {
 void exception_handler() {
-	terminal_writestring("Exception!");
+	char* str = "Exception!";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
 
 	// char c[3] = {(char)num+65, ' ', '\0'};
 	// terminal_writestring(c);
@@ -162,7 +163,8 @@ void init_idt() {
 
 
 void handle_div_by_zero() {
-	terminal_writestring("Div by zero!");
+	char* str = "Div by Zero!";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
 }
 
 // ===== SAMPLE PROCESSES =====
@@ -225,25 +227,29 @@ void sample3() {
 }
 
 void test_jump() {
-    terminal_writestring("before wait\n");
+	char* str = "before wait\n";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
     for (uint32_t i = 0x00FFFFFF; i > 0; i-- ){
         uint8_t color = i;
         terminal_putentryat('X', color, i%5, terminal_row);
     }
-    terminal_writestring("\nafter wait... returning\n");
+	str = "\nafter wait. returning...!";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
 }
 // ===== END SAMPLE PROCESSES =====
 
 void terminal_backstop() {
     terminal_clear();
-    terminal_writestring("  <- if this guy is blinking, all other processes have exited.");
+    char* str = "  <- if this guy is blinking, all other processes have exited.";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
     uint8_t colors[2];
     colors[0] = vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     colors[1] = vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_BLACK);
 
     uint8_t idx = 0;
     while(1){
-        terminal_writestring("");
+		char* str = "";
+		ramfs_write(STDOUT_FILENO, str, strlen(str));
         terminal_putentryat('X', colors[idx], 0, 0);
         idx = (idx+1)%2;
         for (uint32_t i = 0x1FFFFFFF; i > 0; i--);
@@ -267,22 +273,22 @@ void kernel_main() {
     init_stdio(root);
 
     if (!current_dir) {
-        terminal_writestring("Failed to initialize filesystem.");
+        char* str = "Failed to initialize filesystem.";
+		ramfs_write(STDOUT_FILENO, str, strlen(str));
         return;
     }
+
     // Initial terminal prompt
-    terminal_writestring("ShompOS initialized successfully!\n");
-    terminal_writestring("Type 'help' for available commands\n");
-    terminal_writestring("shompOS> ");
+	char* str = "ShompOS initialized successfully!\n" 
+				"Type 'help' for available commands\n"
+				"shompOS> ";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
 
-    void* ap = allocate(500);
-    void* ap2 = allocate(500);
-    void* ap3 = allocate(500);
 
-    init_process(&terminal_backstop, ap);
-    init_process(&sample2, ap2);
-    init_process(&sample3, ap3);
-    init_process(&test_jump, allocate(500));
+    init_process(&terminal_backstop, allocate(500));
+    init_process(&sample2, allocate(500));
+    // init_process(&sample3, allocate(500));
+    // init_process(&test_jump, allocate(500));
     init_process(&terminal_main, allocate(500));
 
     init_pit(PIT_DIVISOR);

@@ -2,8 +2,7 @@
 #include <process/context_switch.h>
 #include <kernel/kernel.h>
 #include <memory/heap.h>
-
-#include <tty.h>
+#include <string.h>
 
 // proccess 0 is reserved for the backstop process, a process that will only be
 // run when no other processes are active.
@@ -86,7 +85,8 @@ processID init_process(void* entry_point, void* stack_bottom) {
 
     if (proc == NULL) {
         // TODO: actually handle the error
-        terminal_writestring("CANNOT RESERVE PROCESS");
+        char* str = "CANNOT RESERVE PROCESS";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
     }
 
     block_header* blk = stack_bottom-sizeof(block_header);

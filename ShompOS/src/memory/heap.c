@@ -1,10 +1,11 @@
-#include <memory/heap.h>
+#include <heap.h>
 #include <stdbool.h>
-#include <kernel/kernel.h>
-#include <fake_libc/fake_libc.h>
+#include <kernel.h>
+#include <fake_libc.h>
+#include <string.h>
+
 #include <stdint.h>
 
-#include <tty.h>
 
 // an array of FIFO linked lists which represents free memory blocks for
 // each of the valid scales. 
@@ -244,7 +245,9 @@ uint8_t free(void* data) {
     block_header* block = (block_header*)data-1;
 	if ((block_header*)block->list.next != block || 
         (block_header*)block->list.prev != block) {
-        terminal_writestring("\nBLOCK DATA CORRUPTED. failed to free");
+        
+        char* str = "\nBLOCK DATA CORRUPTED. failed to free";
+        ramfs_write(STDOUT_FILENO, str, strlen(str));
         return 1;
     }
 
@@ -342,27 +345,27 @@ char* addr_to_string(char* buffer, uintptr_t addr) {
     return buffer;
 }
 
-void print_free_counts(){
-    terminal_writestring("free_block counts:\n");
-    for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
-        uint32_t count = 0;
-        list_header* curr = &free_list[i];
-        while (curr->next != curr)
-        {
-            count++;
-            curr = curr->next;
-        }
-        char c[2] = {(char)count+48, '\0'};
-        char c2[2] = {i>=10 ? (char)i+'A'-10 : (char)i+'0', '\0'};
-        terminal_writestring(c);
-        terminal_writestring(" free blocks of scale ");
-        terminal_writestring(c2);
-        terminal_writestring("\n");  
-    } 
-    char buf[18];
-    addr_to_string(buf, (uintptr_t)current_brk);
-    terminal_writestring("brk at ");
-    terminal_writestring(buf);
-    terminal_writestring("\n");  
-}
+// void print_free_counts(){
+//     terminal_writestring("free_block counts:\n");
+//     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {
+//         uint32_t count = 0;
+//         list_header* curr = &free_list[i];
+//         while (curr->next != curr)
+//         {
+//             count++;
+//             curr = curr->next;
+//         }
+//         char c[2] = {(char)count+48, '\0'};
+//         char c2[2] = {i>=10 ? (char)i+'A'-10 : (char)i+'0', '\0'};
+//         terminal_writestring(c);
+//         terminal_writestring(" free blocks of scale ");
+//         terminal_writestring(c2);
+//         terminal_writestring("\n");  
+//     } 
+//     char buf[18];
+//     addr_to_string(buf, (uintptr_t)current_brk);
+//     terminal_writestring("brk at ");
+//     terminal_writestring(buf);
+//     terminal_writestring("\n");  
+// }
 
