@@ -28,6 +28,7 @@ typedef struct _process_struct {
     // file_descriptor* fd_list;
 } process_struct;
 
+extern processID active_pid;
 
 processID init_process(void* entry_point, void* stack);
 void kill_process(processID PID);

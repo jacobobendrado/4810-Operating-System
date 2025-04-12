@@ -69,6 +69,9 @@ void kill_process(processID PID) {
         void* stack = proc->context.stack_bottom;
         free(stack);
     }
+    if (PID == active_pid) {
+        switch_process_from_queue(); // TODO: check if this can cause race conditions
+    }
 }
 
 // purpose: sets up inital stack state for a new process. the new process is

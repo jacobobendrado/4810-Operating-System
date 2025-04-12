@@ -1,9 +1,9 @@
 
 #include "../inc/syscalls.h"
+#define STDOUT 1
 
 int main() {
-	exit(2);
-	write(1, "after", 6); // Should not be reached
+	write(STDOUT, "Hello world!", 13);
 
 	return 0;
 }
