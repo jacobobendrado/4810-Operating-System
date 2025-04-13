@@ -32,4 +32,4 @@ int8_t brk(void* addr);
 int8_t sbrk(int32_t inc);
 
 // ----- FOR DEBUGGING ------
-void print_free_counts();
+// void print_free_counts();

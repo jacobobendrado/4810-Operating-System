@@ -17,6 +17,6 @@ char *strtok(char *str, const char *delim);
 char *strchr(const char *s, int c);
 
 void addr_to_string(char* buffer, uintptr_t addr);
-void itos(char* outbuf, int num);
+char * itoa( int value, char * str, int base );
 
 #endif

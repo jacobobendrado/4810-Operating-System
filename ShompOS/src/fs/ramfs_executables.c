@@ -126,11 +126,11 @@ void ramfs_ls(ramfs_dir_t *dir) {
         char* str = "[FILE] ";
         ramfs_write(STDOUT_FILENO, str, strlen(str));
         ramfs_write(STDOUT_FILENO, dir->files[i]->name, strlen(dir->files[i]->name));
-        str = "    size:";
+        str = "\n       \xC0 size: ";
         ramfs_write(STDOUT_FILENO, str, strlen(str));
         // TODO: itos() the size lol
         char str_buf[16] = {0};
-        itos(str_buf, dir->files[i]->size);
+        itoa(dir->files[i]->size, str_buf, 10);
         ramfs_write(STDOUT_FILENO, str_buf, strlen(str_buf));
         ramfs_write(STDOUT_FILENO, "\n", 1);
         

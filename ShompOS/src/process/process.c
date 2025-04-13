@@ -41,7 +41,7 @@ process_struct* get_process(processID PID) {
     return proc;
 }
 
-// purpose: gets the next valid PID.
+// purpose: gets the next valid PID
 // returns: the next valid PID 
 // NOTE: the first call to get_next_PID() will return 0, all further calls will
 //       return a PID between [1, MAX_PID]. PID 0 is specially reserved for a 

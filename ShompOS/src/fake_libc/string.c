@@ -195,31 +195,40 @@ void addr_to_string(char* buffer, uintptr_t addr) {
     }
 }
 
-void itos(char* outbuf, int num) {
-    char buffer[12];  // Buffer for storing the integer as a string (including negative sign and null terminator)
-    int i = 0;
-    int j = 0; //output idx
-
-    // Handle the special case when the number is 0
-    if (num == 0) {
-        outbuf[j++] = '0';
-        return;
+char * itoa( int value, char * str, int base )
+{
+    char * rc;
+    char * ptr;
+    char * low;
+    // Check for supported base.
+    if ( base < 2 || base > 36 )
+    {
+        *str = '\0';
+        return str;
     }
-
-    // Handle negative numbers
-    if (num < 0) {
-        outbuf[j++] = '-';
-        num = -num;  // Make the number positive for further processing
+    rc = ptr = str;
+    // Set '-' for negative decimals.
+    if ( value < 0 && base == 10 )
+    {
+        *ptr++ = '-';
     }
-
-    // Convert integer to string in reverse order
-    while (num > 0) {
-        buffer[i++] = (num % 10) + '0';  // Get the last digit and convert it to character
-        num /= 10;  // Remove the last digit
+    // Remember where the numbers start.
+    low = ptr;
+    // The actual conversion.
+    do
+    {
+        // Modulo is negative for negative value. This trick makes abs() unnecessary.
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"[35 + value % base];
+        value /= base;
+    } while ( value );
+    // Terminating the string.
+    *ptr-- = '\0';
+    // Invert the numbers.
+    while ( low < ptr )
+    {
+        char tmp = *low;
+        *low++ = *ptr;
+        *ptr-- = tmp;
     }
-
-    // Print the digits in reverse order
-    for (--i; i >= 0; i--) {
-        outbuf[j++] = buffer[i];  // Print each digit from the buffer
-    }
+    return rc;
 }

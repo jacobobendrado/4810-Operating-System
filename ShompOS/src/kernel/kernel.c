@@ -39,24 +39,32 @@
 IDT_entry IDT[IDT_SIZE];
 
 
-// void exception_handler(uint8_t num) {
+// purpose: halt system when an exception occurs 
 void exception_handler() {
 	char* str = "Exception!";
 	ramfs_write(STDOUT_FILENO, str, strlen(str));
-
-	// char c[3] = {(char)num+65, ' ', '\0'};
-	// terminal_writestring(c);
 	__asm__ volatile ("cli; hlt");
 }
 
-void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
-	IDT[interrupt_num].offset_lowerbits = (uint32_t)offset & 0x0000FFFF;
-	IDT[interrupt_num].selector = KERNEL_CODE_SEGMENT_OFFSET;
-	IDT[interrupt_num].zero = 0;
-	IDT[interrupt_num].type_attr = flags;
-	IDT[interrupt_num].offset_upperbits = ((uint32_t)offset & 0xFFFF0000) >> 16;
+// alternate version that prints exception number
+// void exception_handler(uint8_t num) {
+// 	char* str = "Exception!";
+// 	ramfs_write(STDOUT_FILENO, str, strlen(str));
+
+// 	char c[3] = {(char)num+65, ' ', '\0'};
+// 	ramfs_write(STDOUT_FILENO, c, 3);
+// 	__asm__ volatile ("cli; hlt");
+// }
+
+// purpose: handles specifically the Div By 0 exception
+void handle_div_by_zero() {
+	char* str = "Div by Zero!";
+	ramfs_write(STDOUT_FILENO, str, strlen(str));
 }
 
+// purpose: initializes the Programmable Interrupt Timer (PIT) to allow timed
+//			interrupts, used to switch processes.
+// divisor: PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
 void init_pit(uint32_t divisor) {
     // Command byte: Channel 0, low/high byte, rate generator mode
     ioport_out(PIT_COMMAND_MODE_PORT, 0x36);
@@ -69,16 +77,31 @@ void init_pit(uint32_t divisor) {
     ioport_out(PIC1_DATA_PORT, ioport_in(0x21) & ~(1 << 0));
 }
 
+// purpose: handles interrupt raised by PIT
 void handle_clock_interrupt() {
 	// clear interrupt; tells PIC we
 	// are handling it.
 	ioport_out(PIC1_COMMAND_PORT, 0x20);
 
-	// terminal_writestring("clock");
 	switch_process_from_queue();
-
 }
-// ----- PageKey Video -----
+
+// purpose: creates an IDT entry 
+// interrupt_num: index in the IDT
+// offset: address of interrupt handler
+// flags: IDT flags (see https://wiki.osdev.org/Interrupt_Descriptor_Table)
+void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
+	IDT[interrupt_num].offset_lowerbits = (uint32_t)offset & 0x0000FFFF;
+	IDT[interrupt_num].selector = KERNEL_CODE_SEGMENT_OFFSET;
+	IDT[interrupt_num].zero = 0;
+	IDT[interrupt_num].type_attr = flags;
+	IDT[interrupt_num].offset_upperbits = ((uint32_t)offset & 0xFFFF0000) >> 16;
+}
+
+// purpose: sets up IDT, installs interrupt handlers, initializes interrupt
+// 			controllers (PICs), and finally informs the CPU of the IDT.
+// much thanks to PageKey on YouTube for the tutorial. 
+// https://www.youtube.com/watch?v=YtnNX074jMU
 void init_idt() {
 	for (int i = 0; i < EXCEPTIONS_SIZE; i++) {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
@@ -139,25 +162,14 @@ void init_idt() {
 	load_idt((uint32_t*) &idt_ptr);
 }
 
-
-void handle_div_by_zero() {
-	char* str = "Div by Zero!";
-	ramfs_write(STDOUT_FILENO, str, strlen(str));
-}
-
-void test_jump() {
-	char* str = "before wait\n";
-	ramfs_write(STDOUT_FILENO, str, strlen(str));
-    for (uint32_t i = 0x00FFFFFF; i > 0; i-- ){
-        uint8_t color = i;
-        terminal_putentryat('X', color, i%5, terminal_row);
-    }
-	str = "\nafter wait. returning...!";
-	ramfs_write(STDOUT_FILENO, str, strlen(str));
-}
-// ===== END SAMPLE PROCESSES =====
-
-void terminal_backstop() {
+// purpose: during multi-processing, this "process" provides ensures there is
+//			always a process to switch from/to when all other processes exit.
+//			it will not be scheduled unless no other processes are active and 
+//			thus should not come up in the course of normal use. 
+// NOTE: currently this is a while(1); (which is all it ever should be) but 
+//       with extra, useless steps. since terminal_main must have exited before
+//       this ever runs, its output will never reach the screen.
+void kernel_backstop() {
     terminal_clear();
     char* str = "  <- if this guy is blinking, all other processes have exited.";
 	ramfs_write(STDOUT_FILENO, str, strlen(str));
@@ -175,27 +187,27 @@ void terminal_backstop() {
     };
 }
 
-// ----- Entry point -----
-void init_shell(ramfs_dir_t* root) {
-    current_dir = root;
-}
 
+// purpose: stand up intial systems of shompOS and initialize base processes.
+//			once interrupts are enabled, the PIT will begin firing and control
+//			will never return here, rather juggled between any active processes
 void kernel_main() {
-    init_terminal();
+  	init_heap(HEAP_LOWER_BOUND);
   	init_idt();
   	init_kb();
-  	init_heap(HEAP_LOWER_BOUND);
-  	enable_interrupts();
     ramfs_init_fd_system();
     ramfs_dir_t* root = system_root = init_fs();
     current_dir = root;
     init_stdio(root);
-
     if (!current_dir) {
         char* str = "Failed to initialize filesystem.";
 		ramfs_write(STDOUT_FILENO, str, strlen(str));
         return;
     }
+
+	// Start necessary processes
+    init_process(&kernel_backstop, allocate(500));
+    init_process(&terminal_main, allocate(500));
 
     // Initial terminal prompt
 	char* str = "ShompOS initialized successfully!\n" 
@@ -203,16 +215,15 @@ void kernel_main() {
 				"shompOS> ";
 	ramfs_write(STDOUT_FILENO, str, strlen(str));
 
-
-    init_process(&terminal_backstop, allocate(500));
-    init_process(&sample2, allocate(500));
-    // init_process(&sample3, allocate(500));
-    // init_process(&test_jump, allocate(500));
-    init_process(&terminal_main, allocate(500));
+	// Start sample processes
+	// init_process(&sample_text, allocate(500));
+    init_process(&sample_count, allocate(500));
+    // init_process(&sample_color, allocate(500));
+    // init_process(&sample_return, allocate(500));
 
     init_pit(PIT_DIVISOR);
     enable_interrupts();
 
-    // Main kernel loop
+    // Main kernel loop. *SHOULD* never actually execute.
     while(1);
 }

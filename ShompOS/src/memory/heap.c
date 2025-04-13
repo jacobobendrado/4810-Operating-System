@@ -4,18 +4,16 @@
 #include <fake_libc.h>
 #include <string.h>
 
-#include <stdint.h>
-
 
 // an array of FIFO linked lists which represents free memory blocks for
 // each of the valid scales. 
 // slightly non-optimal in terms of memory usage. entries 0..3 remain unused so
 // free_list can be indexed with by scale.
 static list_header free_list[MAX_BLOCK_SCALE+1];
-
 // the limit of our heap. adjusted through brk() and sbrk().
 // points to the first byte AFTER allocatable space.
 static void* current_brk = NULL;
+
 
 static inline bool is_end_of_list(list_header* node) {
     return node->next == node;
@@ -49,7 +47,6 @@ inline uint8_t size_to_scale(uint32_t size) {
     // |504..1015 - A       |
     // +--------------------+
 }
-
 
 // purpose: adds a memory block to the appropriate head of free_list and sets
 //          is_free to true
@@ -316,7 +313,6 @@ int8_t sbrk(int32_t inc) {
     if (!inc) return -1;
     else return brk(current_brk + (inc<<MAX_BLOCK_SCALE));
 }
-
 
 // ----- FOR DEBUGGING ------
 // void print_free_counts(){

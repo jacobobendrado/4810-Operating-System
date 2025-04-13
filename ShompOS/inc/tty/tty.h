@@ -5,10 +5,6 @@
 #include <ramfs.h>
 #include <ramfs_executables.h>
 
-// --- output ---
-#define VGA_WIDTH 80
-#define VGA_HEIGHT 25
-
 extern size_t terminal_row;
 extern size_t terminal_column;
 extern uint8_t terminal_color;
@@ -23,6 +19,22 @@ typedef struct _KEY_state {
 	uint8_t ctrl : 1;
 	uint8_t shift : 1;
 } KEY_state;
+
+void init_kb();
+void init_terminal();
+
+void terminal_putentryat(char c, uint8_t color, size_t x, size_t y);
+void terminal_clear();
+
+// terminal
+void terminal_main();
+
+// sample "processes"
+void sample_text();
+void sample_count();
+void sample_color();
+void sample_return(); 
+
 
 typedef enum {
 	VGA_COLOR_BLACK = 0,
@@ -43,27 +55,23 @@ typedef enum {
 	VGA_COLOR_WHITE = 15,
 } vga_color;
 
-void init_kb();
-void init_terminal();
 
-void terminal_putentryat(char c, uint8_t color, size_t x, size_t y);
-void terminal_writeint(int number);
-void terminal_clear();
-
-// terminal
-void terminal_main();
-
-// sample "processes"
-void sample();
-void sample2();
-void sample3();
-
-inline uint8_t vga_entry_color(vga_color fg, vga_color bg)
+typedef uint8_t entry_color;
+// purpose: creates a VGA entry color out of a foreground and a background color
+inline entry_color vga_entry_color(vga_color fg, vga_color bg)
 {
 	return fg | bg << 4;
 }
 
-inline uint16_t vga_entry(unsigned char uc, uint8_t color)
+// purpose: creates a VGA entry out of a character and a foreground/background
+//			combo (created above)
+inline uint16_t vga_entry(unsigned char uc, entry_color color)
 {
 	return (uint16_t) uc | (uint16_t) color << 8;
+}
+
+// purpose: sets terminal to a foreground/background combo (created above)
+inline void terminal_setcolor(entry_color color)
+{
+	terminal_color = color;
 }
