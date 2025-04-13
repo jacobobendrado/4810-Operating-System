@@ -160,3 +160,66 @@ char *strchr(const char *s, int c) {
     }
     return NULL;
 }
+
+
+// used for debugging
+// stole from Claude
+void addr_to_string(char* buffer, uintptr_t addr) {
+    char hex_digits[] = "0123456789ABCDEF";
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    
+    // Handle 0 specially
+    if (addr == 0) {
+        buffer[2] = '0';
+        buffer[3] = '\0';
+        return;
+    }
+    
+    // Find first significant digit position
+    int digits = 0;
+    uintptr_t temp = addr;
+    while (temp) {
+        digits++;
+        temp >>= 4;
+    }
+    if (digits == 1) digits++;
+    
+    // Write digits from most to least significant
+    buffer[digits + 2] = '\0';  // +2 for "0x" prefix
+    int pos = digits + 1;       // Position to write next digit
+    
+    while (addr) {
+        buffer[pos--] = hex_digits[addr & 0xF];
+        addr >>= 4;
+    }
+}
+
+void itos(char* outbuf, int num) {
+    char buffer[12];  // Buffer for storing the integer as a string (including negative sign and null terminator)
+    int i = 0;
+    int j = 0; //output idx
+
+    // Handle the special case when the number is 0
+    if (num == 0) {
+        outbuf[j++] = '0';
+        return;
+    }
+
+    // Handle negative numbers
+    if (num < 0) {
+        outbuf[j++] = '-';
+        num = -num;  // Make the number positive for further processing
+    }
+
+    // Convert integer to string in reverse order
+    while (num > 0) {
+        buffer[i++] = (num % 10) + '0';  // Get the last digit and convert it to character
+        num /= 10;  // Remove the last digit
+    }
+
+    // Print the digits in reverse order
+    for (--i; i >= 0; i--) {
+        outbuf[j++] = buffer[i];  // Print each digit from the buffer
+    }
+}

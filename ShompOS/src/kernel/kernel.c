@@ -3,15 +3,10 @@
 // Cedarville University 2024-25 OSDev Team
 
 // ----- Includes -----
-#include <kernel/kernel.h>
-#include <kernel/boot.h>
-
-#include <fake_libc/fake_libc.h> // Is this still relevant?
-
-#include <memory/heap.h>
-
-#include <process/process.h>
-
+#include <kernel.h>
+#include <boot.h>
+#include <heap.h>
+#include <process.h>
 #include <string.h>
 #include <ramfs.h>
 #include <ramfs_executables.h>
@@ -39,26 +34,10 @@
 // 0xFFFF results in around 18.3 Hz, the slowest possible with 16 bits
 #define PIT_DIVISOR 0x0FFF
 
-// ----- experimental attempt to run commands
-#define CMD_MAX_LEN 64
-
 // ----- Global variables -----
 // This is our entire IDT. Room for 256 interrupts
 IDT_entry IDT[IDT_SIZE];
 
-// ----- debugging/example variables -----
-bool memory_mode = false;
-bool input_mode = false;
-uint32_t input_len = 0;
-char* input_ptr = NULL;
-uint8_t alloc_size = 0;
-void* ptr[10];
-
-
-
-void kill_process_exception() {
-	__asm__ volatile ("cli; hlt");
-}
 
 // void exception_handler(uint8_t num) {
 void exception_handler() {
@@ -67,7 +46,7 @@ void exception_handler() {
 
 	// char c[3] = {(char)num+65, ' ', '\0'};
 	// terminal_writestring(c);
-	kill_process_exception();
+	__asm__ volatile ("cli; hlt");
 }
 
 void idt_set_descriptor(uint8_t interrupt_num, void* offset, uint8_t flags) {
@@ -105,10 +84,9 @@ void init_idt() {
 		idt_set_descriptor(i, isr_stub_table[i], IDT_TRAP_GATE_32BIT);
 	}
 
-	idt_set_descriptor(0x80, (void*)syscall_handler,  IDT_INTERRUPT_GATE_32BIT);
+	idt_set_descriptor(0x20, (void*)clock_handler,     IDT_TRAP_GATE_32BIT);
 	idt_set_descriptor(0x21, (void*)keyboard_handler,  IDT_INTERRUPT_GATE_32BIT);
-	idt_set_descriptor(0x20, (void*)clock_handler, IDT_TRAP_GATE_32BIT);
-
+	idt_set_descriptor(0x80, (void*)syscall_handler,   IDT_INTERRUPT_GATE_32BIT);
 
 	// the PICs (programmable interrupt controler)
 	// must be initialized before use. this can be done
@@ -165,65 +143,6 @@ void init_idt() {
 void handle_div_by_zero() {
 	char* str = "Div by Zero!";
 	ramfs_write(STDOUT_FILENO, str, strlen(str));
-}
-
-// ===== SAMPLE PROCESSES =====
-void sample() {
-	uint8_t row = 0;
-	uint8_t col = 0;
-	while(1){
-		uint8_t color = vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
-		char buf[5] = "text";
-
-		for (uint8_t i = 0; i < VGA_HEIGHT+4; i++){
-			terminal_putentryat(' ', color, i, row);
-		}
-		for (uint8_t i = 0; i < 4 ; i++){
-			terminal_putentryat(buf[i], color, i+col, row);
-		}
-
-		if (++row == VGA_HEIGHT) {
-			row = 0;
-			if (++col == VGA_HEIGHT) col = 0;
-		}
-		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
-	}
-}
-
-void sample2() {
-	uint8_t color = 0;
-	uint8_t row = 0;
-
-	while (1) {
-    	char buf[5];
-    	addr_to_string(buf, (uintptr_t)color);
-
-		for (uint8_t i = 4; i > 0 ; i--){
-			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
-		}
-		color++;
-		if (++row == VGA_HEIGHT) row = 0;
-		for (uint32_t i = 0xFFFFFFF; i > 0; i-- );
-	}
-}
-
-void sample3() {
-	uint8_t color = 0;
-	uint8_t row = VGA_HEIGHT;
-
-	while (1) {
-    	char buf[8] = "       ";
-    	// addr_to_string(buf, (uintptr_t)color);
-
-		for (uint8_t i = 7; i > 0 ; i--){
-			terminal_putentryat(buf[i], color, (VGA_WIDTH/2)+i, row);
-		}
-		if (--row == (uint8_t)-1) {
-			row = VGA_HEIGHT;
-			color += 0x10;
-		}
-		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
-	}
 }
 
 void test_jump() {

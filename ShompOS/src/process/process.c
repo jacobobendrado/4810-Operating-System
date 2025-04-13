@@ -1,7 +1,7 @@
-#include <process/process.h>
-#include <process/context_switch.h>
-#include <kernel/kernel.h>
-#include <memory/heap.h>
+#include <process.h>
+#include <context_switch.h>
+#include <kernel.h>
+#include <heap.h>
 #include <string.h>
 
 // proccess 0 is reserved for the backstop process, a process that will only be
@@ -58,22 +58,6 @@ processID get_next_PID() {
     return next_pid;
 }
 
-// purpose: stops a process from being scheduled in the future. frees reserved
-//          memory back to the pool.
-// PID: the PID to kill
-void kill_process(processID PID) {
-    process_struct* proc = get_process(PID);
-    if (proc != NULL){
-        proc->status = STOPPED;
-
-        void* stack = proc->context.stack_bottom;
-        free(stack);
-    }
-    if (PID == active_pid) {
-        switch_process_from_queue(); // TODO: check if this can cause race conditions
-    }
-}
-
 // purpose: sets up inital stack state for a new process. the new process is
 //          left in the SPAWNED status and will not be scheduled until 
 //          explicitly asked.  
@@ -127,7 +111,6 @@ processID init_process(void* entry_point, void* stack_bottom) {
     // set up the process_struct
     proc->PID = PID;
     proc->status = SPAWNED;
-    proc->entry_point = entry_point;
     proc->wait_time = 0;
 
     return PID;
@@ -167,5 +150,21 @@ void switch_process_from_queue() {
     if (proc->PID != active_pid) {
         switch_process(proc->PID);
 
+    }
+}
+
+// purpose: stops a process from being scheduled in the future. frees reserved
+//          memory back to the pool.
+// PID: the PID to kill
+void kill_process(processID PID) {
+    process_struct* proc = get_process(PID);
+    if (proc != NULL){
+        proc->status = STOPPED;
+
+        void* stack = proc->context.stack_bottom;
+        free(stack);
+    }
+    if (PID == active_pid) {
+        switch_process_from_queue(); // TODO: check if this can cause race conditions
     }
 }

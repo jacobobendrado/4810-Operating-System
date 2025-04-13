@@ -17,6 +17,14 @@ static list_header free_list[MAX_BLOCK_SCALE+1];
 // points to the first byte AFTER allocatable space.
 static void* current_brk = NULL;
 
+static inline bool is_end_of_list(list_header* node) {
+    return node->next == node;
+}
+
+static inline bool is_head_of_list(list_header* node) {
+    return node->prev == node;
+}
+
 // purpose: converts a request from size in bytes to a power of 2 scale
 // size: requested size to allocate in bytes
 // returns: next power of 2, uint8_t
@@ -311,40 +319,6 @@ int8_t sbrk(int32_t inc) {
 
 
 // ----- FOR DEBUGGING ------
-// stole from Claude
-char* addr_to_string(char* buffer, uintptr_t addr) {
-    char hex_digits[] = "0123456789ABCDEF";
-    buffer[0] = '0';
-    buffer[1] = 'x';
-    
-    // Handle 0 specially
-    if (addr == 0) {
-        buffer[2] = '0';
-        buffer[3] = '\0';
-        return buffer;
-    }
-    
-    // Find first significant digit position
-    int digits = 0;
-    uintptr_t temp = addr;
-    while (temp) {
-        digits++;
-        temp >>= 4;
-    }
-    if (digits == 1) digits++;
-    
-    // Write digits from most to least significant
-    buffer[digits + 2] = '\0';  // +2 for "0x" prefix
-    int pos = digits + 1;       // Position to write next digit
-    
-    while (addr) {
-        buffer[pos--] = hex_digits[addr & 0xF];
-        addr >>= 4;
-    }
-    
-    return buffer;
-}
-
 // void print_free_counts(){
 //     terminal_writestring("free_block counts:\n");
 //     for (uint8_t i = MIN_BLOCK_SCALE; i <= MAX_BLOCK_SCALE; i++) {

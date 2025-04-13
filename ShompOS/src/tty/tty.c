@@ -1,17 +1,25 @@
 #include <tty.h>
-
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-
 #include <kernel.h>
-#include <kernel/boot.h>
+#include <boot.h>
 #include <string.h>
 #include <ramfs.h>
 #include <ramfs_executables.h>
 #include <keyboard_map.h>
 #include <keyboard_map_shift.h>
 
+
+// IO Ports for Keyboard
+#define KEYBOARD_DATA_PORT 0x60
+#define KEYBOARD_STATUS_PORT 0x64
+// ----- experimental attempt to run commands
+#define CMD_MAX_LEN 64
+char cmd_buffer[CMD_MAX_LEN];
+size_t cmd_pos = 0;
+
+// ------ Globals -----
 size_t terminal_row;
 size_t terminal_column;
 uint8_t terminal_color;
@@ -19,24 +27,11 @@ uint16_t* terminal_buffer;
 ramfs_dir_t* current_dir = NULL;
 ramfs_dir_t* system_root = NULL;
 
-// ----- experimental attempt to run commands
-#define CMD_MAX_LEN 64
-char cmd_buffer[CMD_MAX_LEN];
-size_t cmd_pos = 0;
-
 // --- input ---
 KEY_state special_key_state = {0,0,0,0,0};
-uint8_t control_key_flags = 0;
-
-void terminal_writestring(const char* data);
-
-// ----- Bare Bones -----
-void init_kb()
-{
-	ioport_out(PIC1_DATA_PORT, 0xFD);
-}
 
 
+// ----- Terminal -----
 void init_terminal(void)
 {
 	terminal_row = 0;
@@ -49,9 +44,8 @@ void init_terminal(void)
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
 	}
-	// char* term = "shompOS>";
-	// terminal_writestring(term);
 }
+
 
 void terminal_advance_row()
 {
@@ -68,6 +62,8 @@ void terminal_setcolor(uint8_t color)
 {
 	terminal_color = color;
 }
+
+
 
 void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 {
@@ -99,34 +95,6 @@ void terminal_write(const char* data, size_t size)
 		}
 }
 
-void terminal_writeint(int num) {
-    char buffer[12];  // Buffer for storing the integer as a string (including negative sign and null terminator)
-    int i = 0;
-
-    // Handle the special case when the number is 0
-    if (num == 0) {
-        terminal_putchar('0');
-        return;
-    }
-
-    // Handle negative numbers
-    if (num < 0) {
-        terminal_putchar('-');
-        num = -num;  // Make the number positive for further processing
-    }
-
-    // Convert integer to string in reverse order
-    while (num > 0) {
-        buffer[i++] = (num % 10) + '0';  // Get the last digit and convert it to character
-        num /= 10;  // Remove the last digit
-    }
-
-    // Print the digits in reverse order
-    for (--i; i >= 0; i--) {
-        terminal_putchar(buffer[i]);  // Print each digit from the buffer
-    }
-}
-
 void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
@@ -155,208 +123,202 @@ void terminal_refresh() {
 }
 
 
+// ----- Sample Processes -----
+// ===== SAMPLE PROCESSES =====
+void sample() {
+	uint8_t row = 0;
+	uint8_t col = 0;
+	while(1){
+		uint8_t color = vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+		char buf[5] = "text";
 
+		for (uint8_t i = 0; i < VGA_HEIGHT+4; i++){
+			terminal_putentryat(' ', color, i, row);
+		}
+		for (uint8_t i = 0; i < 4 ; i++){
+			terminal_putentryat(buf[i], color, i+col, row);
+		}
 
-
-
-
-
-// Modified command handling in handle_keyboard_interrupt in kernel.c
-void parse_command(char* cmd_buffer, char* argv[], int* argc) {
-    *argc = 0;
-    char* token = cmd_buffer;
-    bool in_quotes = false;
-    bool was_space = true;  // Track if previous char was space
-
-    for (int i = 0; cmd_buffer[i] != '\0'; i++) {
-        if (cmd_buffer[i] == '"') {
-            in_quotes = !in_quotes;
-            cmd_buffer[i] = '\0';  // Replace quote with null terminator
-            if (!in_quotes && token != &cmd_buffer[i]) {
-                argv[*argc] = token;
-                (*argc)++;
-            }
-            token = &cmd_buffer[i + 1];
-        }
-        else if (cmd_buffer[i] == ' ' && !in_quotes) {
-            cmd_buffer[i] = '\0';
-            if (!was_space) {
-                argv[*argc] = token;
-                (*argc)++;
-            }
-            token = &cmd_buffer[i + 1];
-            was_space = true;
-        }
-        else {
-            if (was_space) {
-                token = &cmd_buffer[i];
-                was_space = false;
-            }
-        }
-    }
-
-    // Add the last token if it exists
-    if (!was_space && token != &cmd_buffer[strlen(cmd_buffer)]) {
-        argv[*argc] = token;
-        (*argc)++;
-    }
+		if (++row == VGA_HEIGHT) {
+			row = 0;
+			if (++col == VGA_HEIGHT) col = 0;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
+	}
 }
 
-void execute_command(char* cmd_buffer) {
-    char* argv[16];  // Maximum 16 arguments
-    int argc = 0;
+void sample2() {
+	uint8_t color = 0;
+	uint8_t row = 0;
 
-    parse_command(cmd_buffer, argv, &argc);
+	while (1) {
+    	char buf[5];
+    	addr_to_string(buf, (uintptr_t)color);
 
-    if (argc == 0) return;  // Empty command
+		for (uint8_t i = 4; i > 0 ; i--){
+			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
+		}
+		color++;
+		if (++row == VGA_HEIGHT) row = 0;
+		for (uint32_t i = 0xFFFFFFF; i > 0; i-- );
+	}
+}
 
-    if (strcmp(argv[0], "clear") == 0) {
+void sample3() {
+	uint8_t color = 0;
+	uint8_t row = VGA_HEIGHT;
+
+	while (1) {
+    	char buf[8] = "       ";
+    	// addr_to_string(buf, (uintptr_t)color);
+
+		for (uint8_t i = 7; i > 0 ; i--){
+			terminal_putentryat(buf[i], color, (VGA_WIDTH/2)+i, row);
+		}
+		if (--row == (uint8_t)-1) {
+			row = VGA_HEIGHT;
+			color += 0x10;
+		}
+		for (uint32_t i = 0xFFFFFF; i > 0; i-- );
+	}
+}
+
+void cowsay(const char *message) {
+    // Calculate length of message manually
+    int len = 0;
+    while (message[len] != '\0') {
+        len++;
+    }
+
+    // Top of speech bubble
+    terminal_writestring("\xDA");
+    for (int i = 0; i < len + 2; i++) terminal_writestring("-");
+    terminal_writestring("\xBF\n");
+
+    // Message line
+    terminal_writestring("| ");
+    terminal_writestring(message);
+    terminal_writestring(" |\n");
+
+    // Bottom of speech bubble
+    terminal_writestring("\xC0");
+    for (int i = 0; i < len + 2; i++) 
+        terminal_writestring(i < 9 && i > 5 ? " " : 
+                             i == 5 ? "\xBF" :
+                             i == 9 ? "\xDA" : "-");
+    terminal_writestring("\xD9\n");
+
+    // Cow
+    terminal_writestring("       \\  | ^__^\n");
+    terminal_writestring("         \\| (oo)\\_______\n");
+    terminal_writestring("            (__)\\       )\\/\\\n");
+    terminal_writestring("                ||----w |\n");
+    terminal_writestring("                ||     ||\n");
+}
+
+
+
+// ----- Simple Command Handling -----
+void handle_command(char* cmd) {
+    // Split command and arguments
+    char* cmd_name = cmd;
+    char* args = NULL;
+
+    terminal_writestring("\n");
+
+    // Find first space to separate command from args
+    for (size_t i = 0; cmd[i] != '\0'; i++) {
+        if (cmd[i] == ' ') {
+            cmd[i] = '\0';  // Split string
+            args = &cmd[i + 1];
+            break;
+        }
+    }
+
+    if (strcmp(cmd_name, "clear") == 0) {
         terminal_clear();
     }
-    else if (strcmp(argv[0], "ls") == 0) {
+    else if (strcmp(cmd_name, "ls") == 0) {
         ramfs_ls(current_dir);
     }
-    else if (strcmp(argv[0], "pwd") == 0) {
+    else if (strcmp(cmd_name, "pwd") == 0) {
         ramfs_pwd(current_dir);
     }
-    else if (strcmp(argv[0], "cat") == 0) {
-        if (argc < 2) {
+    else if (strcmp(cmd_name, "cat") == 0) {
+        if (!args) {
             terminal_writestring("Usage: cat <filename>\n");
-        } else {
-            ramfs_cat(current_dir, argv[1]);
+            return;
         }
+        ramfs_cat(current_dir, args);
     }
-    else if (strcmp(argv[0], "touch") == 0) {
-        if (argc < 2) {
+    else if (strcmp(cmd_name, "touch") == 0) {
+        if (!args) {
             terminal_writestring("Usage: touch <filename>\n");
-        } else {
-            ramfs_touch(current_dir, argv[1]);
+            return;
         }
+        ramfs_touch(current_dir, args);
     }
-    else if (strcmp(argv[0], "mkdir") == 0) {
-        if (argc < 2) {
+    else if (strcmp(cmd_name, "mkdir") == 0) {
+        if (!args) {
             terminal_writestring("Usage: mkdir <dirname>\n");
-        } else {
-            ramfs_mkdir(current_dir, argv[1]);
+            return;
         }
+        ramfs_mkdir(current_dir, args);
     }
-    else if (strcmp(argv[0], "rm") == 0) {
-        if (argc < 2) {
+    else if (strcmp(cmd_name, "rm") == 0) {
+        if (!args) {
             terminal_writestring("Usage: rm <filename>\n");
-        } else {
-            ramfs_rm(current_dir, argv[1]);
+            return;
         }
+        ramfs_rm(current_dir, args);
     }
-    else if (strcmp(argv[0], "help") == 0) {
+    else if (strcmp(cmd_name, "help") == 0) {
         terminal_writestring("Available commands:\n");
-        terminal_writestring("  clear - Clear the screen\n");
-        terminal_writestring("  ls - List directory contents\n");
-        terminal_writestring("  pwd - Print working directory\n");
-        terminal_writestring("  cat <file> - Display file contents\n");
-        terminal_writestring("  touch <file> - Create empty file\n");
-        terminal_writestring("  mkdir <dir> - Create directory\n");
-        terminal_writestring("  rm <file> - Remove file\n");
+        terminal_writestring("  clear        Clear the screen\n");
+        terminal_writestring("  ls          List directory contents\n");
+        terminal_writestring("  pwd         Print working directory\n");
+        terminal_writestring("  cat <file>  Display file contents\n");
+        terminal_writestring("  touch <file> Create empty file\n");
+        terminal_writestring("  mkdir <dir> Create directory\n");
+        terminal_writestring("  rm <file>   Remove file\n");
+        terminal_writestring("  help        Show this help message\n");
     }
-    else {
-            terminal_writestring("Unknown command: ");
-            terminal_writestring(argv[0]);
-            terminal_writestring("\nType 'help' for available commands\n");
+    else if (strcmp(cmd_name, "cd") == 0) {
+        if (!args) {
+            terminal_writestring("Usage: cd b<directory>\n");
+            return;
+        }
+        ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
+        if (result_dir) {
+            current_dir = result_dir;
+        }
+        else {
+            terminal_writestring("Failed to find directory\n");
+        }
+
+    }
+    else if (strcmp(cmd_name, "run") == 0) {
+        if (!args) {
+            terminal_writestring("Usage: rm <filename>\n");
+            return;
+        }
+        ramfs_run(current_dir, args);
+
+    }
+    else if (cmd_name[0] != '\0') {
+        terminal_writestring("Unknown command: ");
+        terminal_writestring(cmd_name);
+        terminal_writestring("\n");
     }
 }
 
-void handle_command(char* cmd) {
-     // Split command and arguments
-     char* cmd_name = cmd;
-     char* args = NULL;
 
-     terminal_writestring("\n");
 
-     // Find first space to separate command from args
-     for (size_t i = 0; cmd[i] != '\0'; i++) {
-         if (cmd[i] == ' ') {
-             cmd[i] = '\0';  // Split string
-             args = &cmd[i + 1];
-             break;
-         }
-     }
-
-     if (strcmp(cmd_name, "clear") == 0) {
-         terminal_clear();
-     }
-     else if (strcmp(cmd_name, "ls") == 0) {
-         ramfs_ls(current_dir);
-     }
-     else if (strcmp(cmd_name, "pwd") == 0) {
-         ramfs_pwd(current_dir);
-     }
-     else if (strcmp(cmd_name, "cat") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: cat <filename>\n");
-             return;
-         }
-         ramfs_cat(current_dir, args);
-     }
-     else if (strcmp(cmd_name, "touch") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: touch <filename>\n");
-             return;
-         }
-         ramfs_touch(current_dir, args);
-     }
-     else if (strcmp(cmd_name, "mkdir") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: mkdir <dirname>\n");
-             return;
-         }
-         ramfs_mkdir(current_dir, args);
-     }
-     else if (strcmp(cmd_name, "rm") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: rm <filename>\n");
-             return;
-         }
-         ramfs_rm(current_dir, args);
-     }
-     else if (strcmp(cmd_name, "help") == 0) {
-         terminal_writestring("Available commands:\n");
-         terminal_writestring("  clear        Clear the screen\n");
-         terminal_writestring("  ls          List directory contents\n");
-         terminal_writestring("  pwd         Print working directory\n");
-         terminal_writestring("  cat <file>  Display file contents\n");
-         terminal_writestring("  touch <file> Create empty file\n");
-         terminal_writestring("  mkdir <dir> Create directory\n");
-         terminal_writestring("  rm <file>   Remove file\n");
-         terminal_writestring("  help        Show this help message\n");
-     }
-     else if (strcmp(cmd_name, "cd") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: cd b<directory>\n");
-             return;
-         }
-         ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
-         if (result_dir) {
-             current_dir = result_dir;
-         }
-         else {
-             terminal_writestring("Failed to find directory\n");
-         }
-
-     }
-     else if (strcmp(cmd_name, "run") == 0) {
-         if (!args) {
-             terminal_writestring("Usage: rm <filename>\n");
-             return;
-         }
-         ramfs_run(current_dir, args);
-
-     }
-     else if (cmd_name[0] != '\0') {
-         terminal_writestring("Unknown command: ");
-         terminal_writestring(cmd_name);
-         terminal_writestring("\n");
-     }
+// ----- Keyboard Handling -----
+void init_kb()
+{
+	ioport_out(PIC1_DATA_PORT, 0xFD);
 }
-
 
 void handle_keyboard_interrupt() {
     ioport_out(PIC1_COMMAND_PORT, 0x20);
@@ -396,9 +358,12 @@ void handle_keyboard_interrupt() {
 
             if (current_dir && cmd_pos > 0) {
                 handle_command(cmd_buffer);
+            } else {
+                ramfs_write(STDOUT_FILENO, '\n', 1);
             }
             cmd_pos = 0;
-            terminal_writestring("shompOS> ");
+            char* str = "shompOS> ";
+            ramfs_write(STDOUT_FILENO, str, strlen(str));
             return;
         }
         // Handle backspace (scan code 0x0E)
@@ -425,48 +390,15 @@ void handle_keyboard_interrupt() {
             }
             if (c >= 32 && c <= 126) {  // Only printable characters
                 cmd_buffer[cmd_pos++] = c;
-                // ramfs_write(STDIN_FILENO, &c, 1);
                 ramfs_write(STDOUT_FILENO, &c, 1);
             }
         }
     }
 }
 
-void cowsay(const char *message) {
-    // Calculate length of message manually
-    int len = 0;
-    while (message[len] != '\0') {
-        len++;
-    }
-
-    // Top of speech bubble
-    terminal_writestring(" ");
-    for (int i = 0; i < len + 2; i++) terminal_writestring("_");
-    terminal_writestring("\n");
-
-    // Message line
-    terminal_writestring("< ");
-    terminal_writestring(message);
-    terminal_writestring(" >\n");
-
-    // Bottom of speech bubble
-    terminal_writestring(" ");
-    for (int i = 0; i < len + 2; i++) terminal_writestring("-");
-    terminal_writestring("\n");
-
-    // Cow
-    terminal_writestring("        \\   ^__^\n");
-    terminal_writestring("         \\  (oo)\\_______\n");
-    terminal_writestring("            (__)\\       )\\/\\\n");
-    terminal_writestring("                ||----w |\n");
-    terminal_writestring("                ||     ||\n");
-}
-
-// char* str = "";
-// ramfs_write(STDOUT_FILENO, str, strlen(str));
 // Constantly checking stdin, and writing to screen
 void terminal_main() {
-    cowsay("Mooo. Welcome to ShompOS!");
+    // cowsay("Mooo. Welcome to ShompOS!");
     while(1) {
         // read up to one full line from stdin
         char printBuf[81] = {0};
@@ -475,3 +407,6 @@ void terminal_main() {
         }
     }
 }
+// Use the following to write to screen
+// char* str = "";
+// ramfs_write(STDOUT_FILENO, str, strlen(str));

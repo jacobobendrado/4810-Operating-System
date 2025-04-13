@@ -6,6 +6,9 @@
 
 .macro isr_err_stub num
 isr_stub_\num:
+    # uncomment the following line to pass the exception number. corresponding 
+    # commented lines exist in isr_no_err_stub to pass the number and in 
+    # exception_handler() to be passed the number.
     #pushl $\num
     call exception_handler
     iret

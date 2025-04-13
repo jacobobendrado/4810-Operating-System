@@ -2,6 +2,7 @@
 #define STRING_H
 
 #include <stddef.h>  // For size_t
+#include <stdint.h>
 
 // Basic string manipulation functions
 size_t strlen(const char *s);
@@ -15,5 +16,7 @@ int strncmp(const char *s1, const char *s2, size_t n);
 char *strtok(char *str, const char *delim);
 char *strchr(const char *s, int c);
 
+void addr_to_string(char* buffer, uintptr_t addr);
+void itos(char* outbuf, int num);
 
 #endif

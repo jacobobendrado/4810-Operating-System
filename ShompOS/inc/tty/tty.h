@@ -44,13 +44,19 @@ typedef enum {
 } vga_color;
 
 void init_kb();
-void init_terminal(void);
+void init_terminal();
+
 void terminal_putentryat(char c, uint8_t color, size_t x, size_t y);
-// void terminal_putchar(char c);
 void terminal_writeint(int number);
-// void terminal_writestring(const char* data);
 void terminal_clear();
+
+// terminal
 void terminal_main();
+
+// sample "processes"
+void sample();
+void sample2();
+void sample3();
 
 inline uint8_t vga_entry_color(vga_color fg, vga_color bg)
 {

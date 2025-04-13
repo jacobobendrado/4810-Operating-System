@@ -2,11 +2,17 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <fake_libc/fake_libc.h>
 
 #define HEAP_LOWER_BOUND 0x4000000
 #define MAX_BLOCK_SCALE 0x0F
 #define MIN_BLOCK_SCALE 0x04
+
+// generic struct for any linked lists. 8 bytes.
+// may be best to move to another location, currently is only used here.
+typedef struct _list_header {
+    struct _list_header* next;
+    struct _list_header* prev;
+} list_header;
 
 // sits at the 9 LSB of every memory block. a block's size in bytes is
 // 2^block_header.scale
@@ -27,4 +33,3 @@ int8_t sbrk(int32_t inc);
 
 // ----- FOR DEBUGGING ------
 void print_free_counts();
-char* addr_to_string(char* buffer, uintptr_t addr);

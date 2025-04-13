@@ -102,7 +102,6 @@ clock_handler:
 
 
 
-
 # reads a byte from an IO port (address
 # stored in dx) into al 
 ioport_in:

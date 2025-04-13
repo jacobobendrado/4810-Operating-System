@@ -22,8 +22,12 @@ typedef struct _process_struct {
     context_struct context;
     processID PID;
     process_status status;
-    void* entry_point;
     uint32_t wait_time;
+    
+    // for fork()
+    // void* entry_point;
+    
+    // for per-process FD
     // uint8_t max_fd;
     // file_descriptor* fd_list;
 } process_struct;

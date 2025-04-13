@@ -3,11 +3,10 @@
 // Cedarville University 2024-25 OSDev Team
 
 #include <heap.h>       // For allocate, free
-#include <fake_libc.h>
+// #include <fake_libc.h>
 #include <ramfs.h>
-//#include <stdio.h>
 #include <string.h>
-#include <kernel.h>
+// #include <kernel.h>
 
 
 // create the root directory
@@ -233,11 +232,6 @@ int ramfs_open(ramfs_dir_t *root, const char *path, int flags) {
         return -1;
     }
 
-    // Handle special files
-    if (strcmp(path, "/stdin") == 0) return 0;
-    if (strcmp(path, "/stdout") == 0) return 1;
-    if (strcmp(path, "/stderr") == 0) return 2;
-
     // Copy path to safely manipulate it
     char *path_copy = strdup(path);
     if (!path_copy) {
@@ -442,15 +436,20 @@ int init_stdio(ramfs_dir_t *root) {
     // if (!stdin_file || !stdout_file || !stderr_file)
         // return -1;
     
-    // int in = ramfs_open(root, "stdin", O_RDWR | O_APPEND);
-    // int out = ramfs_open(root, "stdout", O_WRONLY);
-    // int err = ramfs_open(root, "stderr", O_WRONLY);
+    //ramfs_open(root, "stdin", O_RDWR | O_APPEND);
+    //ramfs_open(root, "stdout", O_WRONLY);
+    //ramfs_open(root, "stderr", O_WRONLY);
     
-    ramfs_file_t *stdstream_file = ramfs_create_file(root, "stdstream", "", 80);
+
+    char* filename = "stdstream";
+    
+    ramfs_file_t *stdstream_file = ramfs_create_file(root, filename, "", 1);
     if (!stdstream_file) return -1;
 
-    int in = ramfs_open(root, "stdstream", O_RDWR | O_APPEND);
-    int out = ramfs_open(root, "stdstream", O_WRONLY);
+    // stdin
+    ramfs_open(root, filename, O_RDWR | O_APPEND);
+    // stdout
+    ramfs_open(root, filename, O_WRONLY);
 
     return 0;
 }

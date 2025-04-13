@@ -10,9 +10,6 @@
 #define PIC1_DATA_PORT 0x21
 #define PIC2_COMMAND_PORT 0xA0
 #define PIC2_DATA_PORT 0xA1
-// IO Ports for Keyboard
-#define KEYBOARD_DATA_PORT 0x60
-#define KEYBOARD_STATUS_PORT 0x64
 
 typedef struct _IDT_pointer {
 	uint16_t limit;
