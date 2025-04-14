@@ -4,12 +4,12 @@
 
 PATH := $(HOME)/opt/cross/bin:$(PATH)
 
-# tools
+# Tools
 CC = i686-elf-gcc
 LD = i686-elf-ld
 AS = i686-elf-as
 
-# directories
+# Directories
 SRC_DIR = ./src
 INC_DIR = ./inc
 MNT_DIR = ./mnt
@@ -18,6 +18,7 @@ BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj
 MNT_OUT_DIR = $(BUILD_DIR)/mnt
 
+# Key Files
 LINKER_FILE = $(SRC_DIR)/linker.ld
 KERNEL_OUT = $(BUILD_DIR)/shompOS.bin
 ISO_OUT = $(BUILD_DIR)/shompOS.iso
@@ -27,6 +28,7 @@ ISO_OUT = $(BUILD_DIR)/shompOS.iso
 CFLAGS = -ffreestanding -O2 -Wall -Wextra -m32 -I$(INC_DIR) -I$(INC_DIR)/elf -I$(INC_DIR)/fake_libc -I$(INC_DIR)/fs -I$(INC_DIR)/process -I$(INC_DIR)/tty -I$(INC_DIR)/kernel -I$(INC_DIR)/memory -ggdb
 LDFLAGS = -T $(LINKER_FILE) -nostdlib -o $(KERNEL_OUT)
 
+#TODO: make KERNEL_OBJS and include directories automatically extensible
 KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/boot.o \
 				$(OBJ_DIR)/heap.o \
@@ -41,6 +43,7 @@ KERNEL_OBJS = 	$(OBJ_DIR)/kernel.o \
 				$(OBJ_DIR)/mnt.o \
 				$(OBJ_DIR)/tty.o 
 
+# Targets
 .PHONY: all build run run-curses debug debug-curses clean
 
 all: $(BUILD_DIR)/shompOS.bin
@@ -56,6 +59,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/**/%.S
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Special case: recursive copy of ShompOS/mnt directory to become root directory of ShompOS
 $(OBJ_DIR)/mnt.o: $(OBJ_DIR)/mnt.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o "$@.temp"
@@ -76,11 +80,14 @@ build: $(BUILD_DIR)/shompOS.bin
 
 run: build
 	qemu-system-i386 -cdrom ${ISO_OUT}
+
 run-curses: build
 	qemu-system-i386 -display curses -cdrom ${ISO_OUT}
+
 debug: build
 	qemu-system-i386 -s -S -cdrom $(ISO_OUT) &
 	gdb $(KERNEL_OUT) -x debug.gdb
+
 debug-curses: build
 	qemu-system-i386 -display curses -s -S -cdrom $(ISO_OUT)
 

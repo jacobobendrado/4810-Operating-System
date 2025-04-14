@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Expected usage: $0 MNT_DIR LD MNT_OUT_DIR SCRIPTS_DIR outfile_name
 if [ "$#" -ne 5 ]; then
     echo "Usage: $0 <MNT_DIR> <LD> <MNT_OUT_DIR> <SCRIPTS_DIR> <outfile_name>"
     exit 1
@@ -12,7 +11,7 @@ MNT_OUT_DIR="$3"
 SCRIPTS_DIR="$4"
 OUTFILE="$5"
 
-ech() { # text, file
+ech() { # $1 = text, $2 = file
     echo -n "$1 " >> "$2"
 }
 
@@ -54,3 +53,6 @@ echo $OUTFILE
 awk -f "$SCRIPTS_DIR"/mnt_setup_1.awk $tempfile > $OUTFILE
 awk -f "$SCRIPTS_DIR"/mnt_setup_2.awk $tempfile >> $OUTFILE
 rm $tempfile
+
+# TODO: Allow more characters than just ' ', '/', and '.' to be handled by copy (see sed script)
+# TODO: Distingush between different special characters (i.e. /home/txt and /home.txt)

@@ -51,20 +51,8 @@ isr_no_err_stub 29 # Probably not
 isr_err_stub    30 # Probably not
 isr_no_err_stub 31 # Reserved
 
-.extern handle_div_by_zero
 isr_0:
-    pushal
-    cld
-    call handle_div_by_zero
-
-    # Increment the instruction pointer for returning
-    # to skip the div instruction.
-    # Should be changed later to kill the process
-    movl 0x20(%esp), %edx
-    addl $2, %edx
-    movl %edx, 0x20(%esp)
-    popal
-    iret
+    unrecoverable_error
 
 isr_2:
     unrecoverable_error

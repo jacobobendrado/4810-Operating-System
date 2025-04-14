@@ -1,5 +1,5 @@
 // ramfs_executables.c
-// functions that act as executables for the ramfs
+// Functions that act as executables for the ramfs
 // Cedarville University 2024-25 OSDev Team
 
 #include <heap.h>       // For allocate(), free()
@@ -196,10 +196,6 @@ void ramfs_touch(ramfs_dir_t *dir, const char *filename) {
         ramfs_write(STDOUT_FILENO, str, strlen(str));
         ramfs_write(STDOUT_FILENO, "\n", 1);
     }
-}
-
-ramfs_dir_t *ramfs_cd(ramfs_dir_t *root, const char *dir_name) {
-    return ramfs_find_dir(root, dir_name);
 }
 
 void ramfs_run(ramfs_dir_t *dir, const char *filename) {

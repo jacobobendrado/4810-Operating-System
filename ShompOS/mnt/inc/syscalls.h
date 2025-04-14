@@ -1,4 +1,6 @@
-
+// mnt/inc/syscalls.h
+// Header for library to wrap syscalls
+// Cedarville University 2024-25 OSDev Team
 
 #include <stdint.h>
 

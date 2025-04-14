@@ -1,9 +1,16 @@
+// mnt/inc/syscalls.c
+// Library to wrap syscalls
+// Cedarville University 2024-25 OSDev Team
+
 /*
+COMPILATION INSTRUCTIONS:
+To compile a source file called "source_file.c" in "mnt/source_dir" into "exe_file", follow these commands
+
 ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o syscalls.o syscalls.c
 ~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o assembly.o syscalls.S
-cd ../home
-~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o test_syscalls.o test_syscalls.c
-~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o test_syscalls test_syscalls.o ../inc/syscalls.o ../inc/assembly.o
+cd ../<source_dir>
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles  -m32 -fPIE -c -o <source_file.o> <source_file.c>
+~/opt/cross/bin/i686-elf-gcc -ffreestanding -nostartfiles -nostdlib -m32 -Wl,-emain -o <exe_file> <source_file>.o ../inc/syscalls.o ../inc/assembly.o
 */
 
 

@@ -1,3 +1,7 @@
+// tty.h
+// Screen management
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once
 
 #include <stdint.h>

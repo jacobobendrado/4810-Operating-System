@@ -1,3 +1,7 @@
+// context_switch.h
+// Switch active process
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once
 
 // used by context_switch() to store and restore a process' state while 

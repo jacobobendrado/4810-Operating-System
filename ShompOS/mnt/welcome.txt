@@ -7,4 +7,6 @@ Available commands:
   touch - Create new file
   mkdir - Create directory
   rm    - Remove file
-  help  - Show this help message
+  help  - Show help message
+  cd    - Change directory
+  run   - Run an executable

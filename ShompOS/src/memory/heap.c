@@ -1,3 +1,7 @@
+// heap.c
+// Memory management
+// Cedarville University 2024-25 OSDev Team
+
 #include <heap.h>
 #include <stdbool.h>
 #include <kernel.h>

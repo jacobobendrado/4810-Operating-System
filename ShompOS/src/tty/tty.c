@@ -1,3 +1,7 @@
+// tty.c
+// Screen management
+// Cedarville University 2024-25 OSDev Team
+
 #include <tty.h>
 #include <kernel.h>
 #include <boot.h>
@@ -166,21 +170,23 @@ void handle_command(char* cmd) {
     }
     else if (strcmp(cmd_name, "help") == 0) {
         terminal_writestring("Available commands:\n");
-        terminal_writestring("  clear        Clear the screen\n");
-        terminal_writestring("  ls          List directory contents\n");
-        terminal_writestring("  pwd         Print working directory\n");
-        terminal_writestring("  cat <file>  Display file contents\n");
-        terminal_writestring("  touch <file> Create empty file\n");
-        terminal_writestring("  mkdir <dir> Create directory\n");
-        terminal_writestring("  rm <file>   Remove file\n");
-        terminal_writestring("  help        Show this help message\n");
+        terminal_writestring("  clear          Clear the screen\n");
+        terminal_writestring("  ls             List directory contents\n");
+        terminal_writestring("  pwd            Print working directory\n");
+        terminal_writestring("  cat <file>     Display file contents\n");
+        terminal_writestring("  touch <file>   Create empty file\n");
+        terminal_writestring("  mkdir <dir>    Create directory\n");
+        terminal_writestring("  rm <file>      Remove file\n");
+        terminal_writestring("  help           Show this help message\n");
+        terminal_writestring("  cd <directory> Change directory\n");
+        terminal_writestring("  run <file>     Run an executable\n");
     }
     else if (strcmp(cmd_name, "cd") == 0) {
         if (!args) {
-            terminal_writestring("Usage: cd b<directory>\n");
+            terminal_writestring("Usage: cd </absolute/path/to/directory>\n");
             return;
         }
-        ramfs_dir_t *result_dir = ramfs_cd(system_root, args);
+        ramfs_dir_t *result_dir = ramfs_find_dir(system_root, args);
         if (result_dir) {
             current_dir = result_dir;
         }
@@ -191,7 +197,7 @@ void handle_command(char* cmd) {
     }
     else if (strcmp(cmd_name, "run") == 0) {
         if (!args) {
-            terminal_writestring("Usage: rm <filename>\n");
+            terminal_writestring("Usage: run <filename>\n");
             return;
         }
         ramfs_run(current_dir, args);
@@ -405,6 +411,7 @@ void terminal_main() {
         }
     }
 }
+
 // Use the following to write to screen
 // char* str = "";
 // ramfs_write(STDOUT_FILENO, str, strlen(str));

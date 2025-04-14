@@ -148,14 +148,15 @@ typedef struct
 #define PROGRAM_TYPE_LOAD 1
 
 
-#define ELF_ERROR      1
+#define ELF_ERROR     -1
 #define NOT_ELF_FILE   2
 #define ELF_UNREADABLE 3
 
 // Reads and starts execution of ELF file.
 // Doesn't use virtual memory; rather, it allocates one
 // contiguous block for all loadable segments. This causes
-// issues with the .bss section.
+// issues with the .bss section for gcc-compiled executables.
+// Returns a PID, or ELF_ERROR with error
 processID init_elf(ramfs_file_t* f);
 
 // Check if the file is readable. Returns 0 without error.

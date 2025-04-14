@@ -99,7 +99,7 @@ int is_readable(ramfs_file_t* f) {
         return ELF_UNREADABLE;
     }
 
-    // Check for endianness; not certain if this is needed
+    // TODO: Check if endianness matters
     if  (elfHeader->e_ident[5] != E_LITTLE_ENDIAN) {
         return ELF_UNREADABLE;
     }

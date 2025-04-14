@@ -1,3 +1,7 @@
+// kernel.h
+// Core functionality for the kernel
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once
 
 #include <stdbool.h>

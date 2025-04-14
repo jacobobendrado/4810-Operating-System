@@ -1,3 +1,6 @@
+// test_syscalls.c
+// Test exit() syscall
+// Cedarville University 2024-25 OSDev Team
 
 #include "../inc/syscalls.h"
 

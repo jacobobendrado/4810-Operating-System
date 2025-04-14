@@ -22,7 +22,7 @@
 .include "src/kernel/ist.S"
 .include "src/kernel/syscall_table.S"
 
-# these functions will be called from kernel.c
+# these functions will be called from C code
 .global start
 .global load_gdt
 .global load_idt
@@ -33,13 +33,13 @@
 .global ioport_out
 .global enable_interrupts
 
-# these functions are in kernel.c and will 
+# these functions are in C code and will 
 # be called in assembly
 .extern kernel_main            
 .extern handle_keyboard_interrupt
 .extern handle_clock_interrupt
 
-# loads the gdt_descriptor found in gdt.s
+# loads the gdt_descriptor found in gdt.S
 load_gdt:
     lgdt gdt_descriptor
     ret
@@ -92,7 +92,7 @@ keyboard_handler:
 
 
 clock_handler:
-    cli
+    cli # TODO: Should we turn off all interrupts?
     pushal
     cld
     call handle_clock_interrupt
@@ -131,7 +131,6 @@ start:
     movl $stack_top, %esp  
     cli                      
 
-    #movl $stack_top, %esp
     call kernel_main
     hlt
 

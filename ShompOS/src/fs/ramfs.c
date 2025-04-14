@@ -1,12 +1,10 @@
 // ramfs.c
-// simple implementation of an in memory filesystem
+// Simple implementation of an in memory filesystem
 // Cedarville University 2024-25 OSDev Team
 
 #include <heap.h>       // For allocate, free
-// #include <fake_libc.h>
 #include <ramfs.h>
 #include <string.h>
-// #include <kernel.h>
 
 
 // create the root directory

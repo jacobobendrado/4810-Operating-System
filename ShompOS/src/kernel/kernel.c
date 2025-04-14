@@ -56,12 +56,6 @@ void exception_handler() {
 // 	__asm__ volatile ("cli; hlt");
 // }
 
-// purpose: handles specifically the Div By 0 exception
-void handle_div_by_zero() {
-	char* str = "Div by Zero!";
-	ramfs_write(STDOUT_FILENO, str, strlen(str));
-}
-
 // purpose: initializes the Programmable Interrupt Timer (PIT) to allow timed
 //			interrupts, used to switch processes.
 // divisor: PIT will trigger an interrupt at a rate of 1193180 / divisor Hz
@@ -217,7 +211,7 @@ void kernel_main() {
 
 	// Start sample processes
 	// init_process(&sample_text, allocate(500));
-    init_process(&sample_count, allocate(500));
+    // init_process(&sample_count, allocate(500));
     // init_process(&sample_color, allocate(500));
     // init_process(&sample_return, allocate(500));
 

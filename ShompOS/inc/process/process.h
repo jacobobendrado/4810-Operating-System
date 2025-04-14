@@ -1,3 +1,7 @@
+// process.h
+// Process management
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once
 
 #include <stddef.h>

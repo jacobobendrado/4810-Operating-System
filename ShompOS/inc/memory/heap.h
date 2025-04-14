@@ -1,11 +1,15 @@
+// heap.c
+// Memory management
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once
 
 #include <stddef.h>
 #include <stdint.h>
 
 #define HEAP_LOWER_BOUND 0x4000000
-#define MAX_BLOCK_SCALE 0x0F
-#define MIN_BLOCK_SCALE 0x04
+#define MAX_BLOCK_SCALE 0x0F // This is able to be changed
+#define MIN_BLOCK_SCALE 0x04 // This should not
 
 // generic struct for any linked lists. 8 bytes.
 // may be best to move to another location, currently is only used here.

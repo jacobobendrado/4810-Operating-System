@@ -7,7 +7,7 @@
 .extern ramfs_write
 
 sys_table:
-    .long 0
+    .long 0 # intenionally blank
     .long syscall_exit
     .long 0 # fork()
     .long ramfs_read

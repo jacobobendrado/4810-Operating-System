@@ -1,3 +1,7 @@
+// boot.h
+// Header file for assembly files run at startup
+// Cedarville University 2024-25 OSDev Team
+
 #pragma once 
 
 #include <stdint.h>

@@ -1,5 +1,9 @@
+// string.c
+// Library functions about strings for kernel
+// Cedarville University 2024-25 OSDev Team
+
 #include <string.h>
-#include <heap.h>           //
+#include <heap.h>
 
 // strlen: Return length of string
 size_t strlen(const char *s) {
@@ -195,7 +199,7 @@ void addr_to_string(char* buffer, uintptr_t addr) {
     }
 }
 
-char * itoa( int value, char * str, int base )
+char *itoa(int value, char *str, int base )
 {
     char * rc;
     char * ptr;

@@ -1,3 +1,7 @@
+// process.c
+// Process management
+// Cedarville University 2024-25 OSDev Team
+
 #include <process.h>
 #include <context_switch.h>
 #include <kernel.h>
