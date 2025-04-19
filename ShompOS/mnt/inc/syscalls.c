@@ -23,17 +23,21 @@ void exit(int32_t error_code) {
 }
 
 uint32_t read(uint32_t fd, char *buf, uint32_t count) {
-    do_syscall(3, fd, buf, count, 0, 0, 0);
+    do_syscall(3, fd, (uint32_t)buf, count, 0, 0, 0);
 }
 
 uint32_t write(uint32_t fd, const char *buf, uint32_t count) {
-    do_syscall(4, fd, buf, count, 0, 0, 0);
+    do_syscall(4, fd, (uint32_t)buf, count, 0, 0, 0);
 }
 
 uint32_t open(const char *filename, int flags, uint32_t mode) {
-    do_syscall(5, filename, flags, mode, 0, 0, 0);
+    do_syscall(5, (uint32_t)filename, flags, mode, 0, 0, 0);
 }
 
 uint32_t close(uint32_t fd) {
     do_syscall(6, fd, 0, 0, 0, 0, 0);
+}
+
+void putchar(char c, uint8_t color, uint32_t x, uint32_t y) {
+    do_syscall(7, c, color, x, y, 0, 0);
 }

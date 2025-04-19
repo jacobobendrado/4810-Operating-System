@@ -6,6 +6,7 @@
 #include <kernel.h>
 #include <boot.h>
 #include <string.h>
+#include <process.h>
 #include <keyboard_map.h>
 #include <keyboard_map_shift.h>
 
@@ -180,6 +181,7 @@ void handle_command(char* cmd) {
         terminal_writestring("  help           Show this help message\n");
         terminal_writestring("  cd <directory> Change directory\n");
         terminal_writestring("  run <file>     Run an executable\n");
+        terminal_writestring("  kill <PID>     Kill a process\n");
     }
     else if (strcmp(cmd_name, "cd") == 0) {
         if (!args) {
@@ -202,6 +204,14 @@ void handle_command(char* cmd) {
         }
         ramfs_run(current_dir, args);
 
+    }
+    else if (strcmp(cmd_name, "kill") == 0) {
+        if (!args) {
+            terminal_writestring("Usage: kill <PID>\n");
+            return;
+        }
+        uint8_t PID = (char)args[0]-'0';
+        kill_process(PID);
     }
     else if (cmd_name[0] != '\0') {
         terminal_writestring("Unknown command: ");
@@ -252,13 +262,12 @@ void handle_keyboard_interrupt() {
         // Handle enter key - process command
         if (keyboard_map[(uint8_t)keycode] == '\n') {
             cmd_buffer[cmd_pos] = '\0';
-
             if (current_dir && cmd_pos > 0) {
+                cmd_pos = 0;
                 handle_command(cmd_buffer);
             } else {
                 ramfs_write(STDOUT_FILENO, "\n", 1);
             }
-            cmd_pos = 0;
             char* str = "shompOS> ";
             ramfs_write(STDOUT_FILENO, str, strlen(str));
             return;
@@ -322,11 +331,11 @@ void sample_count() {
 	uint8_t row = 0;
 
 	while (1) {
-    	char buf[5];
-    	addr_to_string(buf, (uintptr_t)color);
+        char buf[5];
+        addr_to_string(buf, (uintptr_t)color);
 
-		for (uint8_t i = 4; i > 0 ; i--){
-			terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
+        for (uint8_t i = 4; i > 0 ; i--){
+            terminal_putentryat(buf[4-i], color, VGA_WIDTH-i, row);
 		}
 		color++;
 		if (++row == VGA_HEIGHT) row = 0;

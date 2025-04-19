@@ -10,3 +10,4 @@ uint32_t read(uint32_t fd, char *buf, uint32_t count);
 uint32_t write(uint32_t fd, const char *buf, uint32_t count);
 uint32_t open(const char *filename, int flags, uint32_t mode);
 uint32_t close(uint32_t fd);
+void putchar(char c, uint8_t color, uint32_t x, uint32_t y);
