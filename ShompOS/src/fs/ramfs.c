@@ -345,7 +345,7 @@ ssize_t ramfs_write(int fd, const void *buf, size_t count) {
 
     if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
         // Simulate writing to terminal
-        terminal_writestring((const char *)buf);
+        terminal_putchar(*(char *)buf);
         return count;
     }
 
